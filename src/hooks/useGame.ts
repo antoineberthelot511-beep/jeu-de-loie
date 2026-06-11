@@ -1,91 +1,67 @@
-import { useState, useCallback } from 'react';
-import type { Case } from '@/types/game';
-import { board as defaultBoard } from '@/data/board';
-import * as GameLogic from '@/lib/gameLogic';
+"use client";
 
-export type GameState = ReturnType<typeof GameLogic.initializeGame>;
+import { useCallback, useEffect, useState } from "react";
+import type { Player } from "@/types/game";
 
-export function useGame(initialPlayerCount: number = 2, board: Case[] = defaultBoard) {
-  const [state, setState] = useState<GameState>(() =>
-    GameLogic.initializeGame(initialPlayerCount, board)
+const PLAYERS_KEY = "players";
+const TURN_KEY = "currentPlayerIndex";
+
+export function useGame() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved state on mount
+  useEffect(() => {
+    try {
+      const savedPlayers = localStorage.getItem(PLAYERS_KEY);
+      if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
+
+      const savedTurn = localStorage.getItem(TURN_KEY);
+      if (savedTurn) setCurrentPlayerIndex(JSON.parse(savedTurn));
+    } catch (e) {
+      console.warn("Failed to load game state from localStorage", e);
+    }
+    setLoaded(true);
+  }, []);
+
+  // Persist players whenever they change
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
+  }, [players, loaded]);
+
+  // Persist current turn whenever it changes
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem(TURN_KEY, JSON.stringify(currentPlayerIndex));
+  }, [currentPlayerIndex, loaded]);
+
+  const currentPlayer = players[currentPlayerIndex];
+
+  /**
+   * Teleport the current player to the given world and pass the turn
+   * to the next player.
+   */
+  const teleportCurrentPlayer = useCallback(
+    (worldId: Player["location"]) => {
+      if (players.length === 0) return;
+
+      setPlayers((prev) =>
+        prev.map((p, i) =>
+          i === currentPlayerIndex ? { ...p, location: worldId } : p
+        )
+      );
+      setCurrentPlayerIndex((prev) => (prev + 1) % players.length);
+    },
+    [players.length, currentPlayerIndex]
   );
 
-  const rollDice = useCallback(() => {
-    if (state.isOver) return;
-
-    const dice = GameLogic.rollDice();
-    setState((prev) => ({
-      ...prev,
-      diceValue: dice,
-      log: [...prev.log, `Joueur ${prev.currentPlayerIndex + 1} lance le dé : ${dice}`],
-    }));
-
-    const playerId = state.currentPlayerIndex;
-    const player = state.players[playerId];
-
-    // Move player
-    const newPos = GameLogic.movePosition(player.position, dice);
-    setState((prev) => {
-      const players = [...prev.players];
-      players[playerId] = { ...players[playerId], position: newPos };
-      return {
-        ...prev,
-        players,
-        log: [...prev.log, `Joueur ${playerId + 1} avance de ${dice} et arrive sur la case ${newPos}`],
-      };
-    });
-
-    // Apply case effect
-    setState((prev) => {
-      const players = [...prev.players];
-      players[playerId] = { ...players[playerId], position: prev.players[playerId].position };
-      // We'll work on a copy of state to apply effect
-      const tempState: GameLogic.GameState = {
-        players,
-        currentPlayerIndex: prev.currentPlayerIndex,
-        log: [...prev.log],
-        diceValue: prev.diceValue,
-        isOver: prev.isOver,
-        winner: prev.winner,
-      };
-      GameLogic.applyCaseEffect(tempState, playerId, board);
-      // Check victory after effect
-      GameLogic.checkVictory(tempState);
-      // Determine if we need to skip turn or roll again
-      let justRolledAgain = false;
-      let skipTurn = false;
-      const effect = board.find((c) => c.id === tempState.players[playerId].position)?.effect;
-      switch (effect?.type) {
-        case 'rejoue':
-          justRolledAgain = true;
-          break;
-        case 'passe_tour':
-          skipTurn = true;
-          break;
-        default:
-          break;
-      }
-      // Advance turn unless roll again
-      if (!justRolledAgain) {
-        if (skipTurn) {
-          // skip one turn: advance twice
-          tempState.currentPlayerIndex =
-            (tempState.currentPlayerIndex + 2) % tempState.players.length;
-        } else {
-          tempState.currentPlayerIndex =
-            (tempState.currentPlayerIndex + 1) % tempState.players.length;
-        }
-      }
-      return {
-        ...tempState,
-        // diceValue cleared after turn ends? keep until next roll? we keep until next roll.
-      };
-    });
-  }, [state, board]);
-
-  const resetGame = useCallback((playerCount: number) => {
-    setState(GameLogic.initializeGame(playerCount, board));
-  }, [board]);
-
-  return { state, rollDice, resetGame };
+  return {
+    players,
+    setPlayers,
+    currentPlayer,
+    currentPlayerIndex,
+    teleportCurrentPlayer,
+  };
 }
