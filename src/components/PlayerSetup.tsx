@@ -76,6 +76,7 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
       image: p.image,
       location: "hub",
       money: 100,
+      life: 100,
       inventory: [],
     }));
 

@@ -6,12 +6,19 @@ import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
 import { useActionRequests } from '@/hooks/useActionRequests';
-import NarrateurPanel from '@/components/NarrateurPanel';
-import PlayersOverview from '@/components/PlayersOverview';
-import ActionRequests from '@/components/ActionRequests';
+import NarratorMaps from '@/components/NarratorMaps';
+import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
+import NarratorPowers from '@/components/NarratorPowers';
 import ActionVideo from '@/components/ActionVideo';
 import TopBar from '@/components/TopBar';
+import TabBar from '@/components/TabBar';
 import type { Item } from '@/types/game';
+
+const TABS = [
+  { id: 'maps', label: 'Maps' },
+  { id: 'players', label: 'Joueurs' },
+  { id: 'narrator', label: 'Narrateur' },
+];
 
 export default function HostPage() {
   const params = useParams<{ code: string }>();
@@ -22,6 +29,7 @@ export default function HostPage() {
   const pendingRequests = useActionRequests(gameId);
 
   const [starting, setStarting] = useState(false);
+  const [activeTab, setActiveTab] = useState('maps');
   const [videoOverlays, setVideoOverlays] = useState<
     { id: string; style: React.CSSProperties }[]
   >([]);
@@ -101,6 +109,23 @@ export default function HostPage() {
       .eq('id', playerId);
   };
 
+  const handleAdjustLife = (playerId: string, amount: number) => {
+    const target = players.find((p) => p.id === playerId);
+    if (!target) return;
+
+    void supabase
+      .from('players')
+      .update({ life: Math.max(0, target.life + amount) })
+      .eq('id', playerId);
+  };
+
+  const handleSendMessage = (playerId: string, message: string) => {
+    void supabase
+      .from('players')
+      .update({ narrator_message: message || null })
+      .eq('id', playerId);
+  };
+
   if (loading) {
     return (
       <div className="page-shell page-enter items-center justify-center px-4 py-12">
@@ -174,25 +199,31 @@ export default function HostPage() {
       <TopBar
         title={`Partie ${code}`}
         items={[{ label: 'Joueurs', value: String(players.length) }]}
-      />
+      >
+        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
+      </TopBar>
 
-      <NarrateurPanel
-        players={players}
-        onGiveItem={handleGiveItem}
-        onRemoveItem={handleRemoveItem}
-        onAdjustMoney={handleAdjustMoney}
-        onSummonCroqueMonsieur={spawnVideo}
-      />
+      {activeTab === 'maps' && <NarratorMaps players={players} />}
 
-      <div className="flex flex-col gap-6 px-4 py-8 sm:px-6">
-        <PlayersOverview players={players} />
-
-        <ActionRequests
-          requests={pendingRequests}
+      {activeTab === 'players' && (
+        <NarratorPlayerPanel
           players={players}
-          onResolve={handleResolveRequest}
+          onGiveItem={handleGiveItem}
+          onRemoveItem={handleRemoveItem}
+          onAdjustMoney={handleAdjustMoney}
+          onAdjustLife={handleAdjustLife}
+          onSendMessage={handleSendMessage}
         />
-      </div>
+      )}
+
+      {activeTab === 'narrator' && (
+        <NarratorPowers
+          players={players}
+          requests={pendingRequests}
+          onResolve={handleResolveRequest}
+          onSummonCroqueMonsieur={spawnVideo}
+        />
+      )}
 
       {videoOverlays.map(({ id, style }) => (
         <ActionVideo

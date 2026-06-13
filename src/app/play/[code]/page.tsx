@@ -95,6 +95,7 @@ export default function PlayPage() {
         title={code}
         items={[
           { label: 'Solde', value: `${player.money}` },
+          { label: 'Vie', value: `${player.life}` },
           ...(status === 'playing' ? [{ label: 'Lieu', value: locationName(player.location) }] : []),
         ]}
       />
@@ -109,6 +110,17 @@ export default function PlayPage() {
           )}
           <h1 className="page-title text-3xl sm:text-4xl">{player.name}</h1>
         </div>
+
+        {player.narratorMessage && (
+          <Reveal className="w-full">
+            <div className="bento-card w-full flex flex-col gap-1.5" style={{ background: 'var(--accent-soft)' }}>
+              <span className="eyebrow" style={{ color: 'var(--accent)' }}>Message du narrateur</span>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                {player.narratorMessage}
+              </p>
+            </div>
+          </Reveal>
+        )}
 
         {status === 'lobby' ? (
           <p className="body-text text-center">

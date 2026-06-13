@@ -24,7 +24,8 @@
       "Bash(npx --yes -p playwright node screenshot.mjs)",
       "Bash(npm root *)",
       "Bash(NODE_PATH=\"/c/Users/Admin/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules\" node screenshot.mjs)",
-      "Bash(grep -v \"set-state-in-effect\\\\|react-hooks\\\\|^$\\\\|Effects are intended\\\\|^\\\\* \\\\|setState\\\\|cascading\\\\|^C:.*page.tsx:27\\\\|^C:.*useGame.ts:23\\\\|^C:.*useRealtimePlayer.ts:17\")"
+      "Bash(grep -v \"set-state-in-effect\\\\|react-hooks\\\\|^$\\\\|Effects are intended\\\\|^\\\\* \\\\|setState\\\\|cascading\\\\|^C:.*page.tsx:27\\\\|^C:.*useGame.ts:23\\\\|^C:.*useRealtimePlayer.ts:17\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/ --max-time 5)"
     ]
   }
 }

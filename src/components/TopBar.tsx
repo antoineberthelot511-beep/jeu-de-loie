@@ -6,9 +6,10 @@ type TopBarItem = {
 type TopBarProps = {
   title?: string;
   items?: TopBarItem[];
+  children?: React.ReactNode;
 };
 
-export default function TopBar({ title, items = [] }: TopBarProps) {
+export default function TopBar({ title, items = [], children }: TopBarProps) {
   return (
     <div className="glass-bar">
       <div className="glass-bar-inner">
@@ -26,6 +27,7 @@ export default function TopBar({ title, items = [] }: TopBarProps) {
           </div>
         ))}
       </div>
+      {children && <div className="glass-bar-tabs">{children}</div>}
     </div>
   );
 }

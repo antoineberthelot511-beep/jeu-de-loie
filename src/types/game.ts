@@ -13,7 +13,9 @@ export type Player = {
   image: string;
   location: "hub" | "world1" | "world2" | "world3" | "world4";
   money: number;
+  life: number;
   inventory: Item[];
+  narratorMessage?: string | null;
 };
 
 export type World = {
