@@ -16,6 +16,8 @@ export type Player = {
   life: number;
   inventory: Item[];
   narratorMessage?: string | null;
+  posX: number;
+  posY: number;
 };
 
 export type World = {

@@ -7,3 +7,10 @@ alter table players
 
 alter table players
   add column if not exists narrator_message text;
+
+-- Position of the player's avatar on the current map, in percent (0-100).
+alter table players
+  add column if not exists pos_x integer not null default 50;
+
+alter table players
+  add column if not exists pos_y integer not null default 50;

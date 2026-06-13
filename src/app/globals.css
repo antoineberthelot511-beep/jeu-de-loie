@@ -511,6 +511,131 @@ input[type="range"] {
   box-shadow: var(--shadow-card);
 }
 
+/* ---------- Map selector (segmented pill) ---------- */
+
+.map-selector {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: var(--bg-card-soft);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.map-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.map-selector-item {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.35s var(--ease-apple), color 0.35s var(--ease-apple),
+    box-shadow 0.35s var(--ease-apple), transform 0.3s var(--ease-apple);
+}
+
+.map-selector-item:active {
+  transform: scale(0.96);
+}
+
+.map-selector-item.is-active {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 8px 24px -8px var(--accent);
+}
+
+/* ---------- D-pad ---------- */
+
+.dpad {
+  position: relative;
+  width: 10.5rem;
+  height: 10.5rem;
+  border-radius: 50%;
+  background: var(--bg-card-soft);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  place-items: center;
+}
+
+.dpad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.3s var(--ease-apple), box-shadow 0.3s var(--ease-apple),
+    background-color 0.3s var(--ease-apple), color 0.3s var(--ease-apple);
+}
+
+.dpad-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.dpad-btn:active {
+  transform: scale(0.9);
+}
+
+.dpad-center {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+/* ---------- Modal overlay ---------- */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  animation: overlay-in 0.3s var(--ease-apple) both;
+}
+
+@media (min-width: 640px) {
+  .modal-overlay {
+    align-items: center;
+  }
+}
+
 /* ---------- Floating action buttons ---------- */
 
 .fab {

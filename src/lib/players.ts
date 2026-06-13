@@ -10,6 +10,8 @@ export type PlayerRow = {
   location: Player["location"];
   inventory: Item[] | null;
   narrator_message: string | null;
+  pos_x: number | null;
+  pos_y: number | null;
 };
 
 export function rowToPlayer(row: PlayerRow): Player {
@@ -22,5 +24,7 @@ export function rowToPlayer(row: PlayerRow): Player {
     life: row.life ?? 100,
     inventory: row.inventory ?? [],
     narratorMessage: row.narrator_message ?? null,
+    posX: row.pos_x ?? 50,
+    posY: row.pos_y ?? 50,
   };
 }

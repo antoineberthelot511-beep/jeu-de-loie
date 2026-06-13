@@ -78,6 +78,8 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
       money: 100,
       life: 100,
       inventory: [],
+      posX: 50,
+      posY: 50,
     }));
 
     localStorage.setItem("players", JSON.stringify(players));
