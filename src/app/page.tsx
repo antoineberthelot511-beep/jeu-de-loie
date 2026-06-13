@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import TitleBar from '@/components/TitleBar';
 
 type View = 'menu' | 'join';
 
@@ -126,10 +127,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
       <div className="y2k-window w-full max-w-md">
-        <div className="y2k-window-title">
-          <span>◆ JEU DE L&apos;OIE ◆</span>
-          <span>★ NERDLAND ★</span>
-        </div>
+        <TitleBar title="Jeu de l'oie - Nerdland" />
 
         <div className="y2k-window-content space-y-6">
           <h1 className="chrome-text text-2xl sm:text-3xl text-center">
@@ -156,7 +154,6 @@ export default function Page() {
                     style={{
                       fontFamily: 'var(--font-display), sans-serif',
                       color: 'var(--magenta)',
-                      textShadow: '0 0 8px var(--magenta)',
                     }}
                   >
                     ⚠ {createError} ⚠
@@ -185,12 +182,8 @@ export default function Page() {
                     <img src={avatar} alt="Avatar" className="w-16 h-16" />
                   ) : (
                     <span
-                      className="w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
-                      style={{
-                        background: '#000',
-                        color: 'var(--acid-green)',
-                        fontFamily: 'var(--font-terminal), monospace',
-                      }}
+                      className="glass-placeholder w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
+                      style={{ fontFamily: 'var(--font-terminal), monospace' }}
                     >
                       PHOTO
                     </span>
@@ -234,7 +227,6 @@ export default function Page() {
                   style={{
                     fontFamily: 'var(--font-display), sans-serif',
                     color: 'var(--magenta)',
-                    textShadow: '0 0 8px var(--magenta)',
                   }}
                 >
                   ⚠ {joinError} ⚠

@@ -1,5 +1,6 @@
 import type { Player } from "@/types/game";
 import { worlds } from "@/data/worlds";
+import TitleBar from "@/components/TitleBar";
 
 type Destination = {
   id: Player["location"];
@@ -34,10 +35,7 @@ export default function Teleporteur({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9000] px-2 pb-2 sm:px-4 sm:pb-4 pointer-events-none">
       <div className="y2k-window w-full max-w-2xl mx-auto pointer-events-auto max-h-[45vh] flex flex-col">
-        <div className="y2k-window-title flex-shrink-0">
-          <span>◆ TÉLÉPORTEUR ◆</span>
-          <span>★ DESTINATIONS ★</span>
-        </div>
+        <TitleBar title="Téléporteur - Destinations" />
 
         <div className="y2k-window-content space-y-3 overflow-y-auto">
           <div className="flex flex-wrap justify-center gap-2">
@@ -47,16 +45,7 @@ export default function Teleporteur({
               return isActive ? (
                 <span
                   key={dest.id}
-                  className="y2k-btn y2k-btn-sm"
-                  style={
-                    {
-                      "--btn-color": dest.color,
-                      filter: "grayscale(0.4) brightness(0.7)",
-                      cursor: "default",
-                      boxShadow:
-                        "inset 0 3px 8px rgba(0,0,0,0.6), 0 0 10px " + dest.color,
-                    } as React.CSSProperties
-                  }
+                  className="glass-item-sm y2k-btn-sm"
                 >
                   ▶ {dest.name} ◀
                 </span>
@@ -66,7 +55,6 @@ export default function Teleporteur({
                   type="button"
                   onClick={() => onTeleport(dest.id)}
                   className="y2k-btn y2k-btn-sm"
-                  style={{ "--btn-color": dest.color } as React.CSSProperties}
                 >
                   {dest.name}
                 </button>
@@ -77,7 +65,7 @@ export default function Teleporteur({
           <hr className="chrome-divider my-1" />
 
           <div className="space-y-1">
-            <p className="y2k-label sparkle text-center">Qui est où</p>
+            <p className="y2k-label text-center">Qui est où</p>
             <ul className="flex flex-wrap justify-center gap-x-3 gap-y-0.5">
               {players.map((player) => (
                 <li
@@ -85,14 +73,14 @@ export default function Teleporteur({
                   className="text-sm"
                   style={{
                     fontFamily: "var(--font-terminal), monospace",
-                    color: "#fff",
+                    color: "var(--text-strong)",
                   }}
                 >
-                  <span style={{ color: "var(--acid-green)", textShadow: "0 0 4px var(--acid-green)" }}>
+                  <span style={{ color: "var(--acid-green)" }}>
                     {player.name}
                   </span>
                   {" → "}
-                  <span style={{ color: "var(--magenta)", textShadow: "0 0 4px var(--magenta)" }}>
+                  <span style={{ color: "var(--magenta)" }}>
                     {locationName(player.location)}
                   </span>
                 </li>

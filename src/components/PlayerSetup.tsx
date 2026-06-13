@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Player } from "@/types/game";
+import TitleBar from "@/components/TitleBar";
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
@@ -85,26 +86,18 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
       <form onSubmit={handleSubmit} className="y2k-window w-full max-w-2xl">
-        <div className="y2k-window-title">
-          <span>◆ SETUP ◆</span>
-          <span>★ NOUVELLE PARTIE ★</span>
-        </div>
+        <TitleBar title="Setup - Nouvelle partie" />
 
         <div className="y2k-window-content space-y-6">
           <h1 className="chrome-text text-2xl sm:text-3xl text-center">
-            <span className="sparkle">CONFIGURATION DES JOUEURS</span>
+            CONFIGURATION DES JOUEURS
           </h1>
 
           <div className="space-y-4">
             {drafts.map((player, index) => (
               <div
                 key={player.id}
-                className="flex items-center gap-4 p-3 rounded-md"
-                style={{
-                  background: "linear-gradient(135deg, #1a1a40, #06061a)",
-                  border: "2px solid var(--chrome-2)",
-                  boxShadow: "3px 3px 0 rgba(0,0,0,0.6)",
-                }}
+                className="glass-item flex items-center gap-4 p-3"
               >
                 <div className="flex-shrink-0">
                   <label
@@ -120,12 +113,8 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
                       />
                     ) : (
                       <span
-                        className="w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
-                        style={{
-                          background: "#000",
-                          color: "var(--acid-green)",
-                          fontFamily: "var(--font-terminal), monospace",
-                        }}
+                        className="glass-placeholder w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
+                        style={{ fontFamily: "var(--font-terminal), monospace" }}
                       >
                         PHOTO
                       </span>
@@ -176,7 +165,6 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
               style={{
                 fontFamily: "var(--font-display), sans-serif",
                 color: "var(--magenta)",
-                textShadow: "0 0 8px var(--magenta)",
               }}
             >
               ⚠ {error} ⚠

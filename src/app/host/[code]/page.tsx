@@ -10,6 +10,7 @@ import NarrateurPanel from '@/components/NarrateurPanel';
 import PlayersOverview from '@/components/PlayersOverview';
 import ActionRequests from '@/components/ActionRequests';
 import ActionVideo from '@/components/ActionVideo';
+import TitleBar from '@/components/TitleBar';
 import type { Item } from '@/types/game';
 
 export default function HostPage() {
@@ -112,17 +113,13 @@ export default function HostPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
         <div className="y2k-window w-full max-w-md">
-          <div className="y2k-window-title">
-            <span>◆ NARRATEUR ◆</span>
-            <span>★ ERREUR ★</span>
-          </div>
+          <TitleBar title="Narrateur - Erreur" />
           <div className="y2k-window-content">
             <p
               className="text-center text-sm"
               style={{
                 fontFamily: 'var(--font-display), sans-serif',
                 color: 'var(--magenta)',
-                textShadow: '0 0 8px var(--magenta)',
               }}
             >
               ⚠ {error} ⚠
@@ -137,10 +134,7 @@ export default function HostPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
         <div className="y2k-window w-full max-w-md">
-          <div className="y2k-window-title">
-            <span>◆ NARRATEUR ◆</span>
-            <span>★ SALLE D&apos;ATTENTE ★</span>
-          </div>
+          <TitleBar title="Narrateur - Salle d'attente" />
 
           <div className="y2k-window-content space-y-6">
             <div className="text-center">
@@ -164,12 +158,7 @@ export default function HostPage() {
                   {players.map((player) => (
                     <div
                       key={player.id}
-                      className="flex items-center gap-3 p-2 rounded-md"
-                      style={{
-                        background: 'linear-gradient(135deg, #1a1a40, #06061a)',
-                        border: '2px solid var(--chrome-2)',
-                        boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
-                      }}
+                      className="glass-item flex items-center gap-3 p-2"
                     >
                       <div className="avatar-chrome flex-shrink-0">
                         {player.image ? (
@@ -177,12 +166,8 @@ export default function HostPage() {
                           <img src={player.image} alt={player.name} className="w-10 h-10" />
                         ) : (
                           <span
-                            className="w-10 h-10 flex items-center justify-center text-xs rounded-full"
-                            style={{
-                              background: '#000',
-                              color: 'var(--acid-green)',
-                              fontFamily: 'var(--font-terminal), monospace',
-                            }}
+                            className="glass-placeholder w-10 h-10 flex items-center justify-center text-xs rounded-full"
+                            style={{ fontFamily: 'var(--font-terminal), monospace' }}
                           >
                             ?
                           </span>
@@ -190,7 +175,7 @@ export default function HostPage() {
                       </div>
                       <span
                         className="text-sm font-medium truncate"
-                        style={{ fontFamily: 'var(--font-terminal), monospace', color: '#fff' }}
+                        style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-strong)' }}
                       >
                         {player.name}
                       </span>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Item, Player } from "@/types/game";
+import TitleBar from "@/components/TitleBar";
 
 type NarrateurPanelProps = {
   players: Player[];
@@ -100,10 +101,7 @@ export default function NarrateurPanel({
 
       {open && (
         <div className="y2k-window mt-2 w-72 sm:w-80 max-h-[75vh] overflow-y-auto">
-          <div className="y2k-window-title">
-            <span>◆ NARRATEUR ◆</span>
-            <span>★ MAÎTRE DU JEU ★</span>
-          </div>
+          <TitleBar title="Narrateur - Maître du jeu" />
 
           <div className="y2k-window-content space-y-4">
             <div>
@@ -185,7 +183,6 @@ export default function NarrateurPanel({
                   style={{
                     fontFamily: "var(--font-display), sans-serif",
                     color: "var(--acid-green)",
-                    textShadow: "0 0 8px var(--acid-green)",
                   }}
                 >
                   {message}
@@ -213,25 +210,17 @@ export default function NarrateurPanel({
 
               <div className="space-y-3">
                 {players.map((player) => (
-                  <div
-                    key={player.id}
-                    className="p-2 rounded-md"
-                    style={{
-                      background: "linear-gradient(135deg, #1a1a40, #06061a)",
-                      border: "2px solid var(--chrome-2)",
-                      boxShadow: "2px 2px 0 rgba(0,0,0,0.6)",
-                    }}
-                  >
+                  <div key={player.id} className="glass-item p-2">
                     <div className="flex items-center justify-between mb-1">
                       <span
                         className="text-sm font-medium truncate"
-                        style={{ fontFamily: "var(--font-terminal), monospace", color: "#fff" }}
+                        style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
                       >
                         {player.name}
                       </span>
                       <span
                         className="text-sm font-medium"
-                        style={{ color: "var(--acid-green)", textShadow: "0 0 6px var(--acid-green)" }}
+                        style={{ color: "var(--acid-green)" }}
                       >
                         💰 {player.money}
                       </span>
@@ -259,15 +248,11 @@ export default function NarrateurPanel({
                         {player.inventory.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between gap-2 p-1 rounded-md"
-                            style={{
-                              background: "rgba(0,0,0,0.35)",
-                              border: "1px solid var(--chrome-2)",
-                            }}
+                            className="glass-item-sm flex items-center justify-between gap-2 p-1"
                           >
                             <span
                               className="text-xs truncate"
-                              style={{ fontFamily: "var(--font-terminal), monospace", color: "#fff" }}
+                              style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
                             >
                               {item.name}
                             </span>
@@ -381,9 +366,6 @@ export default function NarrateurPanel({
                       color: judgmentMessage.startsWith("☠")
                         ? "var(--magenta)"
                         : "var(--acid-green)",
-                      textShadow: judgmentMessage.startsWith("☠")
-                        ? "0 0 8px var(--magenta)"
-                        : "0 0 8px var(--acid-green)",
                     }}
                   >
                     {judgmentMessage}

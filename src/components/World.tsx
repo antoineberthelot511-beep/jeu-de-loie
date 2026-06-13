@@ -1,5 +1,6 @@
 import type { Item, Player, World as WorldData } from "@/types/game";
 import Shop from "@/components/Shop";
+import TitleBar from "@/components/TitleBar";
 
 type WorldProps = {
   world: WorldData;
@@ -21,15 +22,11 @@ export default function World({
   return (
     <div className="min-h-screen w-full flex flex-col items-center p-2 sm:p-4">
       <div className="y2k-window w-full max-w-2xl">
-        <div className="y2k-window-title">
-          <span>◆ ZONE ◆</span>
-          <span className="chrome-text">{world.name}</span>
-          <span>◆ {world.id.toUpperCase()} ◆</span>
-        </div>
+        <TitleBar title={world.name} />
 
         <div className="y2k-window-content flex flex-col items-center gap-4">
           <h2 className="chrome-text text-2xl sm:text-3xl text-center">
-            <span className="sparkle">{world.name}</span>
+            {world.name}
           </h2>
 
           <hr className="chrome-divider w-full" />
@@ -55,7 +52,6 @@ export default function World({
                     style={{
                       fontFamily: "var(--font-terminal), monospace",
                       color: "var(--acid-green)",
-                      textShadow: "0 0 4px var(--acid-green)",
                     }}
                   >
                     {player.name}

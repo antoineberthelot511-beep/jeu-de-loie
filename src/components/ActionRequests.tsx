@@ -1,5 +1,6 @@
 import type { Player } from "@/types/game";
 import type { ActionRequest } from "@/hooks/useActionRequests";
+import TitleBar from "@/components/TitleBar";
 
 type ActionRequestsProps = {
   requests: ActionRequest[];
@@ -10,10 +11,7 @@ type ActionRequestsProps = {
 export default function ActionRequests({ requests, players, onResolve }: ActionRequestsProps) {
   return (
     <div className="y2k-window w-full max-w-2xl mx-auto">
-      <div className="y2k-window-title">
-        <span>◆ DEMANDES ◆</span>
-        <span>★ DES JOUEURS ★</span>
-      </div>
+      <TitleBar title="Demandes des joueurs" />
 
       <div className="y2k-window-content space-y-2">
         {requests.length === 0 ? (
@@ -25,19 +23,13 @@ export default function ActionRequests({ requests, players, onResolve }: ActionR
             return (
               <div
                 key={request.id}
-                className="flex items-center gap-2 p-2 rounded-md"
-                style={{
-                  background: "linear-gradient(135deg, #1a1a40, #06061a)",
-                  border: "2px solid var(--chrome-2)",
-                  boxShadow: "2px 2px 0 rgba(0,0,0,0.6)",
-                }}
+                className="glass-item flex items-center gap-2 p-2"
               >
                 <div className="min-w-0 flex-1">
                   <span
                     className="block text-xs"
                     style={{
                       color: "var(--acid-green)",
-                      textShadow: "0 0 4px var(--acid-green)",
                       fontFamily: "var(--font-display), sans-serif",
                     }}
                   >
@@ -45,7 +37,7 @@ export default function ActionRequests({ requests, players, onResolve }: ActionR
                   </span>
                   <span
                     className="block text-sm"
-                    style={{ fontFamily: "var(--font-terminal), monospace", color: "#fff" }}
+                    style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
                   >
                     {request.content}
                   </span>

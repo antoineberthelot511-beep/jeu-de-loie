@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
 import { DESTINATIONS, locationName } from '@/lib/locations';
+import TitleBar from '@/components/TitleBar';
 import type { Player } from '@/types/game';
 
 export default function PlayPage() {
@@ -72,10 +73,7 @@ export default function PlayPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-3">
       <div className="y2k-window w-full max-w-sm">
-        <div className="y2k-window-title">
-          <span>◆ JOUEUR ◆</span>
-          <span>★ {code} ★</span>
-        </div>
+        <TitleBar title={`Joueur - ${code}`} />
 
         <div className="y2k-window-content space-y-6">
           {loading ? (
@@ -86,7 +84,6 @@ export default function PlayPage() {
               style={{
                 fontFamily: 'var(--font-display), sans-serif',
                 color: 'var(--magenta)',
-                textShadow: '0 0 8px var(--magenta)',
               }}
             >
               ⚠ {error} ⚠
@@ -97,7 +94,6 @@ export default function PlayPage() {
               style={{
                 fontFamily: 'var(--font-display), sans-serif',
                 color: 'var(--magenta)',
-                textShadow: '0 0 8px var(--magenta)',
               }}
             >
               ⚠ Joueur introuvable ⚠
@@ -116,12 +112,8 @@ export default function PlayPage() {
                     />
                   ) : (
                     <span
-                      className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center text-sm rounded-full"
-                      style={{
-                        background: '#000',
-                        color: 'var(--acid-green)',
-                        fontFamily: 'var(--font-terminal), monospace',
-                      }}
+                      className="glass-placeholder w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center text-sm rounded-full"
+                      style={{ fontFamily: 'var(--font-terminal), monospace' }}
                     >
                       ?
                     </span>
@@ -134,7 +126,7 @@ export default function PlayPage() {
 
                 <p
                   className="text-base font-medium"
-                  style={{ color: 'var(--acid-green)', textShadow: '0 0 6px var(--acid-green)' }}
+                  style={{ color: 'var(--acid-green)' }}
                 >
                   💰 {player.money} roupies
                 </p>
@@ -173,21 +165,16 @@ export default function PlayPage() {
                             disabled={isActive}
                             onClick={() => handleMove(dest.id)}
                             className="y2k-btn"
-                            style={
-                              {
-                                '--btn-color': dest.color,
-                                padding: '0.9rem 0.5rem',
-                                fontSize: '0.85rem',
-                                ...(isActive
-                                  ? {
-                                      filter: 'grayscale(0.4) brightness(0.7)',
-                                      cursor: 'default',
-                                      boxShadow:
-                                        'inset 0 3px 8px rgba(0,0,0,0.6), 0 0 10px ' + dest.color,
-                                    }
-                                  : {}),
-                              } as React.CSSProperties
-                            }
+                            style={{
+                              padding: '0.9rem 0.5rem',
+                              fontSize: '0.85rem',
+                              ...(isActive
+                                ? {
+                                    boxShadow:
+                                      'inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a',
+                                  }
+                                : {}),
+                            }}
                           >
                             {isActive ? `▶ ${dest.name} ◀` : dest.name}
                           </button>
@@ -208,12 +195,7 @@ export default function PlayPage() {
                       player.inventory.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-2 p-2 rounded-md"
-                          style={{
-                            background: 'linear-gradient(135deg, #1a1a40, #06061a)',
-                            border: '2px solid var(--chrome-2)',
-                            boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
-                          }}
+                          className="glass-item flex items-center gap-2 p-2"
                         >
                           {item.image ? (
                             // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
@@ -221,27 +203,24 @@ export default function PlayPage() {
                               src={item.image}
                               alt={item.name}
                               className="w-10 h-10 object-cover rounded-md flex-shrink-0 border-2"
-                              style={{ borderColor: 'var(--chrome-2)' }}
+                              style={{ borderColor: 'rgba(255,255,255,0.6)' }}
                             />
                           ) : (
-                            <div
-                              className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
-                              style={{ background: '#000', border: '2px solid var(--chrome-2)' }}
-                            >
+                            <div className="glass-placeholder w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0">
                               ✦
                             </div>
                           )}
                           <div className="min-w-0 flex-1 space-y-0.5">
                             <span
                               className="block text-sm font-medium truncate"
-                              style={{ fontFamily: 'var(--font-terminal), monospace', color: '#fff' }}
+                              style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-strong)' }}
                             >
                               {item.name}
                             </span>
                             {item.durability !== undefined && (
                               <span
                                 className="block text-xs"
-                                style={{ color: 'var(--acid-green)', textShadow: '0 0 4px var(--acid-green)' }}
+                                style={{ color: 'var(--acid-green)' }}
                               >
                                 ⚙ Durabilité : {item.durability}
                               </span>
@@ -249,7 +228,7 @@ export default function PlayPage() {
                             {item.description && (
                               <span
                                 className="block text-xs"
-                                style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--chrome-2)' }}
+                                style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-soft)' }}
                               >
                                 {item.description}
                               </span>
@@ -296,9 +275,6 @@ export default function PlayPage() {
                           color: requestMessage.startsWith('⚠')
                             ? 'var(--magenta)'
                             : 'var(--acid-green)',
-                          textShadow: requestMessage.startsWith('⚠')
-                            ? '0 0 8px var(--magenta)'
-                            : '0 0 8px var(--acid-green)',
                         }}
                       >
                         {requestMessage}

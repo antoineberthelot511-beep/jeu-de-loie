@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { Player, World } from "@/types/game";
 import { worlds } from "@/data/worlds";
+import TitleBar from "@/components/TitleBar";
 
 type HubProps = {
   players: Player[];
@@ -22,14 +23,11 @@ export default function Hub({ players, onSelectWorld }: HubProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
       <div className="y2k-window w-full max-w-2xl">
-        <div className="y2k-window-title">
-          <span>◆ HUB CENTRAL ◆</span>
-          <span>★ TELEPORTEUR 3000 ★</span>
-        </div>
+        <TitleBar title="Hub central - Téléporteur 3000" />
 
         <div className="y2k-window-content">
           <h1 className="chrome-text text-2xl sm:text-3xl text-center mb-4">
-            <span className="sparkle">CHOISIS TA DESTINATION</span>
+            CHOISIS TA DESTINATION
           </h1>
 
           <div
@@ -44,43 +42,33 @@ export default function Hub({ players, onSelectWorld }: HubProps) {
                 key={world.id}
                 type="button"
                 onClick={() => onSelectWorld?.(world)}
-                className={`${POSITIONS[world.id]} relative flex items-center justify-center overflow-hidden rounded-lg border-4 transition-transform hover:scale-105 active:scale-95`}
-                style={{
-                  borderColor: "var(--chrome-2)",
-                  borderTopColor: "#fff",
-                  borderLeftColor: "#fff",
-                  boxShadow:
-                    "4px 4px 0 rgba(0,0,0,0.6), 0 0 16px " + world.color,
-                  backgroundColor: world.portalImage ? undefined : world.color,
-                }}
+                className={`${POSITIONS[world.id]} relative flex flex-col w-full h-full items-center justify-center gap-1 overflow-hidden p-1`}
               >
-                {world.portalImage && (
-                  <Image
-                    src={world.portalImage}
-                    alt={world.name}
-                    fill
-                    sizes="(max-width: 640px) 33vw, 220px"
-                    className="object-cover"
+                {world.portalImage ? (
+                  <div className="glass-placeholder relative w-full flex-1 overflow-hidden">
+                    <Image
+                      src={world.portalImage}
+                      alt={world.name}
+                      fill
+                      sizes="(max-width: 640px) 33vw, 220px"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="glass-placeholder w-full flex-1"
+                    style={{ backgroundColor: world.color }}
                   />
                 )}
-                <span
-                  className="relative z-10 font-bold text-center px-2 py-1 rounded text-sm sm:text-lg text-white"
-                  style={{
-                    fontFamily: "var(--font-display), sans-serif",
-                    background: "rgba(0,0,0,0.55)",
-                    border: "2px solid var(--acid-green)",
-                    textShadow: "0 0 6px var(--acid-green)",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+                <span className="chrome-text text-xs sm:text-sm text-center truncate w-full">
                   {world.name}
                 </span>
               </button>
             ))}
 
             {/* Spawn zone (center) */}
-            <div className="col-start-2 row-start-2 flex flex-col items-center justify-center gap-3 rounded-lg p-4 y2k-window-content">
-              <span className="y2k-label sparkle">SPAWN</span>
+            <div className="col-start-2 row-start-2 flex flex-col items-center justify-center gap-3 p-4 glass-item">
+              <span className="y2k-label">SPAWN</span>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {playersHere.map((player) => (
                   <div
@@ -100,7 +88,6 @@ export default function Hub({ players, onSelectWorld }: HubProps) {
                       style={{
                         fontFamily: "var(--font-terminal), monospace",
                         color: "var(--acid-green)",
-                        textShadow: "0 0 4px var(--acid-green)",
                       }}
                     >
                       {player.name}
