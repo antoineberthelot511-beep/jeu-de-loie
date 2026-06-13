@@ -1,26 +1,294 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --electric-blue: #1d1dff;
+  --acid-green: #c6ff00;
+  --magenta: #ff2fb9;
+  --chrome-1: #ffffff;
+  --chrome-2: #b8b8b8;
+  --chrome-3: #6e6e6e;
+
+  --background: #02020f;
+  --foreground: #e6f7ff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-orbitron);
+  --font-terminal: var(--font-vt323);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
+  min-height: 100%;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-terminal), "Courier New", monospace;
+  font-size: 1.15rem;
+  background-color: #000010;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(29, 29, 255, 0.55) 0%, rgba(2, 2, 15, 0) 55%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(29, 29, 255, 0.18) 0px,
+      rgba(29, 29, 255, 0.18) 1px,
+      transparent 1px,
+      transparent 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(29, 29, 255, 0.18) 0px,
+      rgba(29, 29, 255, 0.18) 1px,
+      transparent 1px,
+      transparent 40px
+    );
+  background-attachment: fixed;
+}
+
+/* ---------- Chrome / neon headings ---------- */
+
+.chrome-text {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 900;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #e2e2f0 25%,
+    #9090a8 50%,
+    #ffffff 70%,
+    #6e6e6e 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(10, 10, 30, 0.6);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 16px rgba(29, 29, 255, 0.8),
+    0 0 28px rgba(255, 47, 185, 0.35);
+  letter-spacing: 0.08em;
+}
+
+.neon-banner {
+  font-family: var(--font-display), sans-serif;
+  text-align: center;
+  padding: 0.9rem 1.25rem;
+  border: 3px solid var(--acid-green);
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(
+    90deg,
+    rgba(29, 29, 255, 0.45),
+    rgba(255, 47, 185, 0.35)
+  );
+  text-shadow: 0 0 6px var(--acid-green), 0 0 14px var(--magenta), 0 0 2px #fff;
+  box-shadow: 0 0 14px var(--acid-green), 0 0 28px var(--magenta),
+    inset 0 0 16px rgba(198, 255, 0, 0.2);
+  letter-spacing: 0.12em;
+  font-size: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .neon-banner {
+    font-size: 1.4rem;
+  }
+}
+
+/* ---------- Sparkles & dividers ---------- */
+
+.sparkle::before {
+  content: "✦";
+  margin-right: 0.5em;
+  color: var(--acid-green);
+  text-shadow: 0 0 6px var(--acid-green);
+}
+.sparkle::after {
+  content: "✧";
+  margin-left: 0.5em;
+  color: var(--magenta);
+  text-shadow: 0 0 6px var(--magenta);
+}
+
+.chrome-divider {
+  height: 4px;
+  border: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #ffffff 20%,
+    var(--chrome-2) 50%,
+    #ffffff 80%,
+    transparent
+  );
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 0 0 8px rgba(255, 255, 255, 0.4);
+  margin: 0.85rem 0;
+  border-radius: 2px;
+}
+
+/* ---------- Y2K OS-style windows ---------- */
+
+.y2k-window {
+  border: 4px solid;
+  border-color: var(--chrome-1) var(--chrome-3) var(--chrome-3) var(--chrome-1);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #c9c9e6 0%, #9595b8 50%, #c9c9e6 100%);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.55), 0 0 30px rgba(29, 29, 255, 0.5);
+}
+
+.y2k-window-title {
+  font-family: var(--font-display), sans-serif;
+  background: linear-gradient(
+    180deg,
+    #7fb6ff 0%,
+    #1d1dff 45%,
+    #06067a 100%
+  );
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  padding: 0.5rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  letter-spacing: 0.12em;
+  font-size: 0.85rem;
+  border-bottom: 2px solid var(--chrome-1);
+  border-radius: 6px 6px 0 0;
+}
+
+@media (min-width: 640px) {
+  .y2k-window-title {
+    font-size: 1rem;
+  }
+}
+
+.y2k-window-content {
+  margin: 0.65rem;
+  padding: 1rem;
+  background: #060618;
+  border: 2px solid;
+  border-color: #000 var(--chrome-2) var(--chrome-2) #000;
+  border-radius: 6px;
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.85);
+  color: #d6f9ff;
+}
+
+/* ---------- Glossy 3D buttons ---------- */
+
+.y2k-btn {
+  --btn-color: var(--electric-blue);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    var(--btn-color) 45%,
+    #000 130%
+  );
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.65),
+    inset 0 2px 0 rgba(255, 255, 255, 0.85), inset 0 -6px 10px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: filter 0.1s ease, transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.y2k-btn:hover {
+  filter: brightness(1.25) saturate(1.2);
+}
+
+.y2k-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.65),
+    inset 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+.y2k-btn:disabled {
+  filter: grayscale(0.6) brightness(0.7);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.y2k-btn-green {
+  --btn-color: var(--acid-green);
+  color: #133300;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.y2k-btn-magenta {
+  --btn-color: var(--magenta);
+}
+
+.y2k-btn-chrome {
+  --btn-color: var(--chrome-2);
+  color: #1a1a2e;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.y2k-btn-sm {
+  font-size: 0.7rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+}
+
+/* ---------- Inputs (terminal style) ---------- */
+
+.y2k-input {
+  font-family: var(--font-terminal), monospace;
+  font-size: 1.2rem;
+  background: #000;
+  color: var(--acid-green);
+  border: 2px solid;
+  border-color: #000 var(--chrome-2) var(--chrome-2) #000;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.y2k-input::placeholder {
+  color: rgba(198, 255, 0, 0.4);
+}
+
+.y2k-input:focus {
+  outline: 2px solid var(--electric-blue);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.9), 0 0 10px var(--electric-blue);
+}
+
+.y2k-label {
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--acid-green);
+  text-shadow: 0 0 6px rgba(198, 255, 0, 0.6);
+  text-transform: uppercase;
+}
+
+/* ---------- Avatars ---------- */
+
+.avatar-chrome {
+  display: inline-flex;
+  border-radius: 9999px;
+  padding: 3px;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    var(--chrome-2) 35%,
+    var(--chrome-3) 60%,
+    #ffffff 100%
+  );
+  box-shadow: 0 0 10px var(--electric-blue), 0 0 18px var(--magenta),
+    0 0 4px #fff;
+}
+
+.avatar-chrome img {
+  display: block;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid #06061a;
 }

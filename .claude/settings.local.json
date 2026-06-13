@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app *)"
+      "Bash(npx create-next-app *)",
+      "Bash(ren *)",
+      "Bash(git stash *)",
+      "Bash(npx tsc *)",
+      "Read(//tmp/**)",
+      "Bash(npx next *)",
+      "Skill(run)",
+      "Bash(npm run *)",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(break)",
+      "Bash(npx --yes chromium-cli --help)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001)"
     ]
   }
 }

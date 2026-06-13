@@ -1,8 +1,19 @@
+export type Item = {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  durability?: number;
+  description?: string;
+};
+
 export type Player = {
   id: string;
   name: string;
   image: string;
   location: "hub" | "world1" | "world2" | "world3" | "world4";
+  money: number;
+  inventory: Item[];
 };
 
 export type World = {

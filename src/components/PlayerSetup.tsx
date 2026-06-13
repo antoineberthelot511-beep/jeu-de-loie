@@ -74,6 +74,8 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
       name: p.name.trim(),
       image: p.image,
       location: "hub",
+      money: 100,
+      inventory: [],
     }));
 
     localStorage.setItem("players", JSON.stringify(players));
@@ -81,92 +83,121 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-2xl space-y-6 bg-white p-6 rounded-lg shadow-md"
-      >
-        <h1 className="text-2xl font-bold text-center">
-          Configuration des joueurs
-        </h1>
-
-        <div className="space-y-4">
-          {drafts.map((player, index) => (
-            <div
-              key={player.id}
-              className="flex items-center gap-4 p-4 border border-gray-200 rounded-md"
-            >
-              <div className="flex-shrink-0">
-                <label
-                  htmlFor={`image-${player.id}`}
-                  className="block w-16 h-16 rounded-full bg-gray-100 border border-gray-300 overflow-hidden cursor-pointer flex items-center justify-center text-xs text-gray-500 text-center"
-                >
-                  {player.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                    <img
-                      src={player.image}
-                      alt={`Avatar joueur ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    "Photo"
-                  )}
-                </label>
-                <input
-                  id={`image-${player.id}`}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) =>
-                    handleImageChange(player.id, e.target.files?.[0])
-                  }
-                />
-              </div>
-
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">
-                  Joueur {index + 1}
-                </label>
-                <input
-                  type="text"
-                  value={player.name}
-                  onChange={(e) => handleNameChange(player.id, e.target.value)}
-                  placeholder="Nom du joueur"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {drafts.length > MIN_PLAYERS && (
-                <button
-                  type="button"
-                  onClick={() => handleRemovePlayer(player.id)}
-                  className="text-gray-400 hover:text-red-600 text-xl leading-none"
-                  aria-label={`Supprimer le joueur ${index + 1}`}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <form onSubmit={handleSubmit} className="y2k-window w-full max-w-2xl">
+        <div className="y2k-window-title">
+          <span>◆ SETUP ◆</span>
+          <span>★ NOUVELLE PARTIE ★</span>
         </div>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <div className="y2k-window-content space-y-6">
+          <h1 className="chrome-text text-2xl sm:text-3xl text-center">
+            <span className="sparkle">CONFIGURATION DES JOUEURS</span>
+          </h1>
 
-        <div className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={handleAddPlayer}
-            disabled={drafts.length >= MAX_PLAYERS}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Ajouter un joueur
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Démarrer la partie
-          </button>
+          <div className="space-y-4">
+            {drafts.map((player, index) => (
+              <div
+                key={player.id}
+                className="flex items-center gap-4 p-3 rounded-md"
+                style={{
+                  background: "linear-gradient(135deg, #1a1a40, #06061a)",
+                  border: "2px solid var(--chrome-2)",
+                  boxShadow: "3px 3px 0 rgba(0,0,0,0.6)",
+                }}
+              >
+                <div className="flex-shrink-0">
+                  <label
+                    htmlFor={`image-${player.id}`}
+                    className="avatar-chrome cursor-pointer"
+                  >
+                    {player.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                      <img
+                        src={player.image}
+                        alt={`Avatar joueur ${index + 1}`}
+                        className="w-16 h-16"
+                      />
+                    ) : (
+                      <span
+                        className="w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
+                        style={{
+                          background: "#000",
+                          color: "var(--acid-green)",
+                          fontFamily: "var(--font-terminal), monospace",
+                        }}
+                      >
+                        PHOTO
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    id={`image-${player.id}`}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) =>
+                      handleImageChange(player.id, e.target.files?.[0])
+                    }
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="y2k-label block mb-1">
+                    Joueur {index + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={player.name}
+                    onChange={(e) => handleNameChange(player.id, e.target.value)}
+                    placeholder="Nom du joueur"
+                    className="y2k-input w-full"
+                  />
+                </div>
+
+                {drafts.length > MIN_PLAYERS && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePlayer(player.id)}
+                    className="y2k-btn y2k-btn-magenta"
+                    style={{ padding: "0.4rem 0.7rem", fontSize: "1rem" }}
+                    aria-label={`Supprimer le joueur ${index + 1}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {error && (
+            <p
+              className="text-center text-sm"
+              style={{
+                fontFamily: "var(--font-display), sans-serif",
+                color: "var(--magenta)",
+                textShadow: "0 0 8px var(--magenta)",
+              }}
+            >
+              ⚠ {error} ⚠
+            </p>
+          )}
+
+          <hr className="chrome-divider" />
+
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={handleAddPlayer}
+              disabled={drafts.length >= MAX_PLAYERS}
+              className="y2k-btn y2k-btn-chrome"
+            >
+              ＋ Ajouter un joueur
+            </button>
+            <button type="submit" className="y2k-btn y2k-btn-green">
+              ▶ Démarrer la partie
+            </button>
+          </div>
         </div>
       </form>
     </div>

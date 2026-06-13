@@ -15,6 +15,6 @@ export const worlds: World[] = [
     portalImage: "/worlds/meth.jpg",
     sceneImage: "/worlds/capitaliste-monde.jpg",
   },
-  { id: "world3", name: "Monde 3", color: "#22c55e" },
+  { id: "world3", name: "Nerdland", color: "#22c55e", portalImage: "/worlds/nerdland-portail.jpg", sceneImage: "/worlds/nerdland-monde.jpg" },
   { id: "world4", name: "Monde 4", color: "#f59e0b" },
 ];
