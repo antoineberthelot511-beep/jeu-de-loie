@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { Item, Player } from "@/types/game";
-import TitleBar from "@/components/TitleBar";
 
 type NarrateurPanelProps = {
   players: Player[];
@@ -66,7 +65,7 @@ export default function NarrateurPanel({
 
     setMessage(
       isCollective
-        ? `☭ PROPRIÉTÉ COLLECTIVE : tout le monde reçoit ${trimmedName} !`
+        ? `Propriété collective : tout le monde reçoit ${trimmedName}.`
         : null
     );
 
@@ -83,296 +82,247 @@ export default function NarrateurPanel({
 
     if (Math.random() < punishProbability / 100) {
       onSummonCroqueMonsieur();
-      setJudgmentMessage(`☠ CHÂTIMENT : ${player.name} a été puni !`);
+      setJudgmentMessage(`Châtiment : ${player.name} a été puni.`);
     } else {
-      setJudgmentMessage("L'action passe... pas de châtiment cette fois.");
+      setJudgmentMessage("L'action passe, pas de châtiment cette fois.");
     }
   };
 
   return (
-    <div className="fixed top-3 left-3 sm:top-4 sm:left-4 z-[10000]">
+    <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-[10000]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="y2k-btn y2k-btn-magenta"
+        className="btn-pill btn-pill-glass"
       >
-        🎙️ Narrateur
+        Narrateur
       </button>
 
       {open && (
-        <div className="y2k-window mt-2 w-72 sm:w-80 max-h-[75vh] overflow-y-auto">
-          <TitleBar title="Narrateur - Maître du jeu" />
+        <div className="floating-panel bento-card mt-3 w-[20rem] sm:w-96 max-h-[80vh] overflow-y-auto flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <h3 className="section-title">Invoquer un objet</h3>
 
-          <div className="y2k-window-content space-y-4">
-            <div>
-              <h3 className="chrome-text text-lg text-center mb-2">
-                <span className="sparkle">Invoquer un objet</span>
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-2">
-                <div>
-                  <label className="y2k-label block mb-1">Joueur cible</label>
-                  <select
-                    value={targetPlayerId || players[0]?.id || ""}
-                    onChange={(e) => setTargetPlayerId(e.target.value)}
-                    className="y2k-input w-full"
-                  >
-                    {players.map((player) => (
-                      <option key={player.id} value={player.id}>
-                        {player.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="y2k-label block mb-1">Nom de l&apos;objet</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Épée légendaire"
-                    className="y2k-input w-full"
-                  />
-                </div>
-
-                <div>
-                  <label className="y2k-label block mb-1">Image (optionnel)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange(e.target.files?.[0])}
-                    className="text-xs"
-                    style={{
-                      fontFamily: "var(--font-terminal), monospace",
-                      color: "var(--acid-green)",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="y2k-label block mb-1">Durabilité</label>
-                  <input
-                    type="number"
-                    value={durability}
-                    onChange={(e) => setDurability(e.target.value)}
-                    placeholder="Ex: 10"
-                    className="y2k-input w-full"
-                  />
-                </div>
-
-                <div>
-                  <label className="y2k-label block mb-1">Caractéristiques</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Ex: +5 attaque, brille dans le noir..."
-                    rows={3}
-                    className="y2k-input w-full resize-none"
-                  />
-                </div>
-
-                <button type="submit" className="y2k-btn y2k-btn-green w-full">
-                  ✦ Invoquer ✦
-                </button>
-              </form>
-
-              {message && (
-                <p
-                  className="text-center text-sm mt-2"
-                  style={{
-                    fontFamily: "var(--font-display), sans-serif",
-                    color: "var(--acid-green)",
-                  }}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <div>
+                <label className="field-label">Joueur cible</label>
+                <select
+                  value={targetPlayerId || players[0]?.id || ""}
+                  onChange={(e) => setTargetPlayerId(e.target.value)}
+                  className="input-field"
                 >
-                  {message}
-                </p>
-              )}
-            </div>
+                  {players.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <hr className="chrome-divider" />
-
-            <div>
-              <h3 className="chrome-text text-lg text-center mb-2">
-                <span className="sparkle">Gestion des joueurs</span>
-              </h3>
-
-              <div className="mb-2">
-                <label className="y2k-label block mb-1">Montant des roupies</label>
+              <div>
+                <label className="field-label">Nom de l&apos;objet</label>
                 <input
-                  type="number"
-                  value={moneyAmount}
-                  onChange={(e) => setMoneyAmount(e.target.value)}
-                  placeholder="Ex: 10"
-                  className="y2k-input w-full"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Épée légendaire"
+                  className="input-field"
                 />
               </div>
 
-              <div className="space-y-3">
-                {players.map((player) => (
-                  <div key={player.id} className="glass-item p-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="text-sm font-medium truncate"
-                        style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
-                      >
-                        {player.name}
-                      </span>
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: "var(--acid-green)" }}
-                      >
-                        💰 {player.money}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2 mb-2">
-                      <button
-                        type="button"
-                        onClick={() => onAdjustMoney(player.id, parsedMoneyAmount)}
-                        className="y2k-btn y2k-btn-green y2k-btn-sm flex-1"
-                      >
-                        + Ajouter
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onAdjustMoney(player.id, -parsedMoneyAmount)}
-                        className="y2k-btn y2k-btn-magenta y2k-btn-sm flex-1"
-                      >
-                        - Retirer
-                      </button>
-                    </div>
-
-                    {player.inventory.length > 0 ? (
-                      <div className="space-y-1">
-                        {player.inventory.map((item) => (
-                          <div
-                            key={item.id}
-                            className="glass-item-sm flex items-center justify-between gap-2 p-1"
-                          >
-                            <span
-                              className="text-xs truncate"
-                              style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
-                            >
-                              {item.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => onRemoveItem(player.id, item.id)}
-                              className="y2k-btn y2k-btn-magenta y2k-btn-sm"
-                            >
-                              Supprimer
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="y2k-label text-center text-xs">// inventaire vide //</p>
-                    )}
-                  </div>
-                ))}
+              <div>
+                <label className="field-label">Image (optionnel)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageChange(e.target.files?.[0])}
+                  className="file-field"
+                />
               </div>
-            </div>
 
-            <hr className="chrome-divider" />
+              <div>
+                <label className="field-label">Durabilité</label>
+                <input
+                  type="number"
+                  value={durability}
+                  onChange={(e) => setDurability(e.target.value)}
+                  placeholder="Ex: 10"
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Caractéristiques</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ex: +5 attaque, brille dans le noir..."
+                  rows={3}
+                  className="input-field resize-none"
+                />
+              </div>
+
+              <button type="submit" className="btn-pill btn-pill-primary w-full">
+                Invoquer
+              </button>
+            </form>
+
+            {message && <p className="success-text">{message}</p>}
+          </div>
+
+          <hr className="divider" />
+
+          <div className="flex flex-col gap-3">
+            <h3 className="section-title">Gestion des joueurs</h3>
 
             <div>
-              <h3 className="chrome-text text-lg text-center mb-2">
-                <span className="sparkle">Invoquer un châtiment</span>
-              </h3>
+              <label className="field-label">Montant des roupies</label>
+              <input
+                type="number"
+                value={moneyAmount}
+                onChange={(e) => setMoneyAmount(e.target.value)}
+                placeholder="Ex: 10"
+                className="input-field"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {players.map((player) => (
+                <div key={player.id} className="bento-card-soft flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                      {player.name}
+                    </span>
+                    <span className="badge">{player.money}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onAdjustMoney(player.id, parsedMoneyAmount)}
+                      className="btn-pill btn-pill-soft btn-pill-sm flex-1"
+                    >
+                      + Ajouter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onAdjustMoney(player.id, -parsedMoneyAmount)}
+                      className="btn-pill btn-pill-danger btn-pill-sm flex-1"
+                    >
+                      - Retirer
+                    </button>
+                  </div>
+
+                  {player.inventory.length > 0 ? (
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      {player.inventory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-2 rounded-xl px-3 py-1.5"
+                          style={{ background: "var(--bg-card)" }}
+                        >
+                          <span className="text-xs truncate" style={{ color: "var(--text-primary)" }}>
+                            {item.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveItem(player.id, item.id)}
+                            className="btn-link"
+                            style={{ color: "var(--danger)", fontSize: "0.75rem" }}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="body-text text-xs">Inventaire vide.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <hr className="divider" />
+
+          <div className="flex flex-col gap-3">
+            <h3 className="section-title">Invoquer un châtiment</h3>
+            <button
+              type="button"
+              onClick={onSummonCroqueMonsieur}
+              className="btn-pill btn-pill-danger w-full"
+            >
+              Invoquer le croque-monsieur
+            </button>
+          </div>
+
+          <hr className="divider" />
+
+          <div className="flex flex-col gap-3">
+            <h3 className="section-title">Action interdite</h3>
+
+            <div>
+              <label className="field-label">Joueur qui tente l&apos;action</label>
+              <select
+                value={judgePlayerId || players[0]?.id || ""}
+                onChange={(e) => setJudgePlayerId(e.target.value)}
+                className="input-field"
+              >
+                {players.map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="field-label">
+                Probabilité de châtiment : {punishProbability}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={punishProbability}
+                onChange={(e) => setPunishProbability(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={onSummonCroqueMonsieur}
-                className="y2k-btn y2k-btn-magenta w-full"
+                onClick={() => setPunishProbability(20)}
+                className="btn-pill btn-pill-secondary btn-pill-sm flex-1"
               >
-                🥪 Invoquer le croque-monsieur
+                Léger
+              </button>
+              <button
+                type="button"
+                onClick={() => setPunishProbability(50)}
+                className="btn-pill btn-pill-secondary btn-pill-sm flex-1"
+              >
+                Moyen
+              </button>
+              <button
+                type="button"
+                onClick={() => setPunishProbability(80)}
+                className="btn-pill btn-pill-secondary btn-pill-sm flex-1"
+              >
+                Grave
               </button>
             </div>
 
-            <hr className="chrome-divider" />
+            <button type="button" onClick={handleJudge} className="btn-pill btn-pill-primary w-full">
+              Juger l&apos;action
+            </button>
 
-            <div>
-              <h3 className="chrome-text text-lg text-center mb-2">
-                <span className="sparkle">⚠️ ACTION INTERDITE</span>
-              </h3>
-
-              <div className="space-y-2">
-                <div>
-                  <label className="y2k-label block mb-1">Joueur qui tente l&apos;action</label>
-                  <select
-                    value={judgePlayerId || players[0]?.id || ""}
-                    onChange={(e) => setJudgePlayerId(e.target.value)}
-                    className="y2k-input w-full"
-                  >
-                    {players.map((player) => (
-                      <option key={player.id} value={player.id}>
-                        {player.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="y2k-label block mb-1">
-                    Probabilité de châtiment : {punishProbability}%
-                  </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={punishProbability}
-                    onChange={(e) => setPunishProbability(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPunishProbability(20)}
-                    className="y2k-btn y2k-btn-green y2k-btn-sm flex-1"
-                  >
-                    Léger 20%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPunishProbability(50)}
-                    className="y2k-btn y2k-btn-chrome y2k-btn-sm flex-1"
-                  >
-                    Moyen 50%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPunishProbability(80)}
-                    className="y2k-btn y2k-btn-magenta y2k-btn-sm flex-1"
-                  >
-                    Grave 80%
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleJudge}
-                  className="y2k-btn y2k-btn-magenta w-full"
-                >
-                  ⚖️ JUGER L&apos;ACTION
-                </button>
-
-                {judgmentMessage && (
-                  <p
-                    className="text-center text-sm mt-2"
-                    style={{
-                      fontFamily: "var(--font-display), sans-serif",
-                      color: judgmentMessage.startsWith("☠")
-                        ? "var(--magenta)"
-                        : "var(--acid-green)",
-                    }}
-                  >
-                    {judgmentMessage}
-                  </p>
-                )}
-              </div>
-            </div>
+            {judgmentMessage && (
+              <p className={judgmentMessage.startsWith("Châtiment") ? "danger-text" : "success-text"}>
+                {judgmentMessage}
+              </p>
+            )}
           </div>
         </div>
       )}

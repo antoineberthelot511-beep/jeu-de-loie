@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import TitleBar from '@/components/TitleBar';
 
 type View = 'menu' | 'join';
 
@@ -125,68 +124,54 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <div className="y2k-window w-full max-w-md">
-        <TitleBar title="Jeu de l'oie - Nerdland" />
+    <div className="page-shell page-enter items-center justify-center px-4 py-12 sm:px-6">
+      <div className="w-full max-w-md flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <span className="eyebrow">Multijoueur</span>
+          <h1 className="page-title">Jeu de l&apos;oie</h1>
+          <p className="body-text max-w-xs">
+            Crée une partie pour devenir narrateur, ou rejoins une partie déjà ouverte.
+          </p>
+        </div>
 
-        <div className="y2k-window-content space-y-6">
-          <h1 className="chrome-text text-2xl sm:text-3xl text-center">
-            <span className="sparkle">BIENVENUE</span>
-          </h1>
-
+        <div className="bento-card w-full text-left">
           {view === 'menu' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={handleCreateGame}
-                  disabled={creating}
-                  className="y2k-btn y2k-btn-magenta w-full"
-                >
-                  {creating ? '⏳ Création...' : '🎙️ Créer une partie'}
-                </button>
-                <p className="y2k-label text-center text-xs">
-                  // tu seras le Narrateur, pas un joueur //
-                </p>
-                {createError && (
-                  <p
-                    className="text-center text-sm"
-                    style={{
-                      fontFamily: 'var(--font-display), sans-serif',
-                      color: 'var(--magenta)',
-                    }}
-                  >
-                    ⚠ {createError} ⚠
-                  </p>
-                )}
-              </div>
+            <div className="flex flex-col items-center gap-4 py-2">
+              <button
+                type="button"
+                onClick={handleCreateGame}
+                disabled={creating}
+                className="btn-pill btn-pill-primary w-full"
+              >
+                {creating ? 'Création…' : 'Créer une partie'}
+              </button>
+              <p className="body-text text-center text-xs">
+                Tu seras le narrateur, pas un joueur.
+              </p>
 
-              <hr className="chrome-divider" />
+              {createError && <p className="danger-text">{createError}</p>}
+
+              <hr className="divider my-2" />
 
               <button
                 type="button"
                 onClick={() => setView('join')}
-                className="y2k-btn y2k-btn-green w-full"
+                className="btn-link"
               >
-                🎮 Rejoindre une partie
+                Rejoindre une partie <span className="chevron">›</span>
               </button>
             </div>
           )}
 
           {view === 'join' && (
-            <form onSubmit={handleJoinGame} className="space-y-4">
+            <form onSubmit={handleJoinGame} className="flex flex-col gap-5">
               <div className="flex flex-col items-center gap-2">
-                <label htmlFor="avatar-upload" className="avatar-chrome cursor-pointer">
+                <label htmlFor="avatar-upload" className="cursor-pointer">
                   {avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                    <img src={avatar} alt="Avatar" className="w-16 h-16" />
+                    <img src={avatar} alt="Avatar" className="avatar-circle w-20 h-20" />
                   ) : (
-                    <span
-                      className="glass-placeholder w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
-                      style={{ fontFamily: 'var(--font-terminal), monospace' }}
-                    >
-                      PHOTO
-                    </span>
+                    <span className="avatar-placeholder w-20 h-20">Photo</span>
                   )}
                 </label>
                 <input
@@ -199,54 +184,44 @@ export default function Page() {
               </div>
 
               <div>
-                <label className="y2k-label block mb-1">Code de la partie</label>
+                <label className="field-label">Code de la partie</label>
                 <input
                   type="text"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   placeholder="Ex: A1B2"
                   maxLength={4}
-                  className="y2k-input w-full text-center uppercase"
+                  className="input-field text-center uppercase tracking-[0.3em]"
                 />
               </div>
 
               <div>
-                <label className="y2k-label block mb-1">Pseudo</label>
+                <label className="field-label">Pseudo</label>
                 <input
                   type="text"
                   value={pseudo}
                   onChange={(e) => setPseudo(e.target.value)}
                   placeholder="Ton nom"
-                  className="y2k-input w-full"
+                  className="input-field"
                 />
               </div>
 
-              {joinError && (
-                <p
-                  className="text-center text-sm"
-                  style={{
-                    fontFamily: 'var(--font-display), sans-serif',
-                    color: 'var(--magenta)',
-                  }}
-                >
-                  ⚠ {joinError} ⚠
-                </p>
-              )}
+              {joinError && <p className="danger-text">{joinError}</p>}
 
-              <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setView('menu')}
-                  className="y2k-btn y2k-btn-chrome flex-1"
+                  className="btn-link"
                 >
-                  ← Retour
+                  <span className="chevron">‹</span> Retour
                 </button>
                 <button
                   type="submit"
                   disabled={joining}
-                  className="y2k-btn y2k-btn-green flex-1"
+                  className="btn-pill btn-pill-primary"
                 >
-                  {joining ? '⏳ ...' : '▶ Rejoindre'}
+                  {joining ? '…' : 'Rejoindre'}
                 </button>
               </div>
             </form>

@@ -13,13 +13,16 @@ export default function ActionVideo({ style, onEnded }: ActionVideoProps) {
   }, [onEnded]);
 
   return (
-    <video
-      width={200}
-      autoPlay
-      style={style}
-      src="/videos/croque-monsieur.mp4"
-      onEnded={handleEnded}
-      playsInline
-    />
+    <div style={style} className="floating-panel">
+      <video
+        width={200}
+        autoPlay
+        className="rounded-3xl"
+        style={{ boxShadow: 'var(--shadow-card-hover)', display: 'block' }}
+        src="/videos/croque-monsieur.mp4"
+        onEnded={handleEnded}
+        playsInline
+      />
+    </div>
   );
 }

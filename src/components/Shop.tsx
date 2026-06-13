@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { Item } from "@/types/game";
-import TitleBar from "@/components/TitleBar";
 
 type ShopProps = {
   shopItems: Item[];
@@ -47,113 +46,85 @@ export default function Shop({ shopItems, onAddItem, onBuy }: ShopProps) {
 
   const handleBuy = (item: Item) => {
     const success = onBuy(item);
-    setMessage(success ? null : "⚠ PAS ASSEZ DE ROUPIES ⚠");
+    setMessage(success ? null : "Pas assez de roupies.");
   };
 
   return (
-    <div className="y2k-window w-full">
-      <TitleBar title="Market Shop - Capitaliste Land" />
+    <div className="bento-card w-full flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <span className="eyebrow">Capitaliste Land</span>
+        <h2 className="section-title">Market Shop</h2>
+      </div>
 
-      <div className="y2k-window-content space-y-4">
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-wrap items-end gap-2"
-        >
-          <div className="flex-1 min-w-[8rem]">
-            <label className="y2k-label block mb-1">Nom du produit</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Chapeau"
-              className="y2k-input w-full"
-            />
-          </div>
-
-          <div className="w-24">
-            <label className="y2k-label block mb-1">Prix</label>
-            <input
-              type="number"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
-              className="y2k-input w-full"
-            />
-          </div>
-
-          <div>
-            <label className="y2k-label block mb-1">Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageChange(e.target.files?.[0])}
-              className="text-xs"
-              style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--acid-green)" }}
-            />
-          </div>
-
-          <button type="submit" className="y2k-btn y2k-btn-green">
-            ＋ Ajouter
-          </button>
-        </form>
-
-        <hr className="chrome-divider" />
-
-        {message && (
-          <p
-            className="text-center text-sm"
-            style={{
-              fontFamily: "var(--font-display), sans-serif",
-              color: "var(--magenta)",
-            }}
-          >
-            {message}
-          </p>
-        )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {shopItems.map((item) => (
-            <div
-              key={item.id}
-              className="glass-item flex flex-col items-center gap-2 p-2"
-            >
-              {item.image ? (
-                // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-16 h-16 object-cover rounded-md border-2"
-                  style={{ borderColor: "rgba(255,255,255,0.6)" }}
-                />
-              ) : (
-                <div className="glass-placeholder w-16 h-16 rounded-md flex items-center justify-center text-2xl">
-                  ✧
-                </div>
-              )}
-              <span
-                className="text-sm font-medium text-center truncate w-full"
-                style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
-              >
-                {item.name}
-              </span>
-              <span
-                className="text-xs"
-                style={{ color: "var(--acid-green)" }}
-              >
-                💰 {item.price} roupies
-              </span>
-              <button
-                type="button"
-                onClick={() => handleBuy(item)}
-                className="y2k-btn y2k-btn-magenta w-full"
-                style={{ fontSize: "0.7rem", padding: "0.4rem 0.6rem" }}
-              >
-                Acheter
-              </button>
-            </div>
-          ))}
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
+        <div className="flex-1 min-w-[8rem]">
+          <label className="field-label">Nom du produit</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex: Chapeau"
+            className="input-field"
+          />
         </div>
+
+        <div className="w-24">
+          <label className="field-label">Prix</label>
+          <input
+            type="number"
+            min="0"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="0"
+            className="input-field"
+          />
+        </div>
+
+        <div>
+          <label className="field-label">Image</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageChange(e.target.files?.[0])}
+            className="file-field"
+          />
+        </div>
+
+        <button type="submit" className="btn-pill btn-pill-soft">
+          Ajouter
+        </button>
+      </form>
+
+      <hr className="divider" />
+
+      {message && <p className="danger-text">{message}</p>}
+
+      <div className="bento-grid">
+        {shopItems.map((item) => (
+          <div key={item.id} className="bento-card-soft flex flex-col items-center gap-2">
+            {item.image ? (
+              // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-16 h-16 object-cover rounded-2xl"
+              />
+            ) : (
+              <div className="avatar-placeholder w-16 h-16 rounded-2xl">—</div>
+            )}
+            <span className="text-sm font-medium text-center truncate w-full" style={{ color: "var(--text-primary)" }}>
+              {item.name}
+            </span>
+            <span className="badge badge-neutral">{item.price} roupies</span>
+            <button
+              type="button"
+              onClick={() => handleBuy(item)}
+              className="btn-pill btn-pill-primary btn-pill-sm w-full"
+            >
+              Acheter
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

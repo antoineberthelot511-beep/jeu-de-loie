@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Jeu de l'oie",
-  description: "Un jeu de l'oie multijoueur au look Windows 95",
+  description: "Un jeu de l'oie multijoueur",
 };
 
 export default function RootLayout({

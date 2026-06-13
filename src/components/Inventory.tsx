@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { Player } from "@/types/game";
-import TitleBar from "@/components/TitleBar";
 
 type InventoryProps = {
   player?: Player;
@@ -12,82 +11,58 @@ export default function Inventory({ player }: InventoryProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-[10000]">
+    <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[10000]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="y2k-btn y2k-btn-chrome"
+        className="btn-pill btn-pill-glass"
       >
-        🎒 Inventaire
+        Inventaire
       </button>
 
       {open && (
-        <div className="y2k-window mt-2 w-64 max-h-[70vh] overflow-y-auto">
-          <TitleBar title="Inventaire" />
+        <div className="floating-panel bento-card mt-3 w-72 max-h-[75vh] overflow-y-auto flex flex-col gap-4">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h3 className="section-title">{player?.name ?? "Joueur"}</h3>
+            <span className="badge">{player?.money ?? 0} roupies</span>
+          </div>
 
-          <div className="y2k-window-content space-y-3">
-            <h3 className="chrome-text text-center text-lg">
-              {player?.name ?? "Joueur"}
-            </h3>
-            <p
-              className="text-center text-base font-medium"
-              style={{ color: "var(--acid-green)" }}
-            >
-              💰 {player?.money ?? 0} roupies
-            </p>
+          <hr className="divider" />
 
-            <hr className="chrome-divider" />
-
-            <div className="space-y-2">
-              {player && player.inventory.length > 0 ? (
-                player.inventory.map((item, index) => (
-                  <div
-                    key={`${item.id}-${index}`}
-                    className="glass-item flex items-center gap-2 p-2"
-                  >
-                    {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-10 h-10 object-cover rounded-md flex-shrink-0 border-2"
-                        style={{ borderColor: "rgba(255,255,255,0.6)" }}
-                      />
-                    ) : (
-                      <div className="glass-placeholder w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0">
-                        ✦
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <span
-                        className="block text-sm font-medium truncate"
-                        style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-strong)" }}
-                      >
-                        {item.name}
+          <div className="flex flex-col gap-2">
+            {player && player.inventory.length > 0 ? (
+              player.inventory.map((item, index) => (
+                <div key={`${item.id}-${index}`} className="bento-card-soft flex items-center gap-3">
+                  {item.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder w-10 h-10 rounded-xl flex-shrink-0">—</div>
+                  )}
+                  <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                    <span className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                      {item.name}
+                    </span>
+                    {item.durability !== undefined && (
+                      <span className="text-xs" style={{ color: "var(--accent)" }}>
+                        Durabilité {item.durability}
                       </span>
-                      {item.durability !== undefined && (
-                        <span
-                          className="block text-xs"
-                          style={{ color: "var(--acid-green)" }}
-                        >
-                          ⚙ Durabilité : {item.durability}
-                        </span>
-                      )}
-                      {item.description && (
-                        <span
-                          className="block text-xs"
-                          style={{ fontFamily: "var(--font-terminal), monospace", color: "var(--text-soft)" }}
-                        >
-                          {item.description}
-                        </span>
-                      )}
-                    </div>
+                    )}
+                    {item.description && (
+                      <span className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>
+                        {item.description}
+                      </span>
+                    )}
                   </div>
-                ))
-              ) : (
-                <p className="y2k-label text-center">// inventaire vide //</p>
-              )}
-            </div>
+                </div>
+              ))
+            ) : (
+              <p className="body-text text-center">Inventaire vide.</p>
+            )}
           </div>
         </div>
       )}

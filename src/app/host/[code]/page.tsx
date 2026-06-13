@@ -10,7 +10,7 @@ import NarrateurPanel from '@/components/NarrateurPanel';
 import PlayersOverview from '@/components/PlayersOverview';
 import ActionRequests from '@/components/ActionRequests';
 import ActionVideo from '@/components/ActionVideo';
-import TitleBar from '@/components/TitleBar';
+import TopBar from '@/components/TopBar';
 import type { Item } from '@/types/game';
 
 export default function HostPage() {
@@ -103,28 +103,18 @@ export default function HostPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-        <p className="y2k-label text-center">// chargement... //</p>
+      <div className="page-shell page-enter items-center justify-center px-4 py-12">
+        <p className="body-text">Chargement…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-        <div className="y2k-window w-full max-w-md">
-          <TitleBar title="Narrateur - Erreur" />
-          <div className="y2k-window-content">
-            <p
-              className="text-center text-sm"
-              style={{
-                fontFamily: 'var(--font-display), sans-serif',
-                color: 'var(--magenta)',
-              }}
-            >
-              ⚠ {error} ⚠
-            </p>
-          </div>
+      <div className="page-shell page-enter items-center justify-center px-4 py-12">
+        <div className="bento-card w-full max-w-md text-center">
+          <h1 className="section-title mb-2">Narrateur</h1>
+          <p className="danger-text">{error}</p>
         </div>
       </div>
     );
@@ -132,68 +122,45 @@ export default function HostPage() {
 
   if (status === 'lobby') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-        <div className="y2k-window w-full max-w-md">
-          <TitleBar title="Narrateur - Salle d'attente" />
+      <div className="page-shell page-enter items-center justify-center px-4 py-12 sm:px-6">
+        <div className="w-full max-w-md flex flex-col items-center gap-8">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="eyebrow">Code de la partie</span>
+            <h1 className="page-title tracking-[0.2em]">{code}</h1>
+          </div>
 
-          <div className="y2k-window-content space-y-6">
-            <div className="text-center">
-              <p className="y2k-label mb-2">Code de la partie</p>
-              <p className="chrome-text text-5xl sm:text-6xl tracking-[0.3em]">
-                <span className="sparkle">{code}</span>
-              </p>
-            </div>
+          <div className="bento-card w-full flex flex-col gap-4">
+            <h2 className="section-title text-center">
+              Joueurs connectés ({players.length})
+            </h2>
 
-            <hr className="chrome-divider" />
-
-            <div>
-              <h2 className="chrome-text text-lg text-center mb-2">
-                <span className="sparkle">Joueurs connectés ({players.length})</span>
-              </h2>
-
-              {players.length === 0 ? (
-                <p className="y2k-label text-center">// en attente de joueurs... //</p>
-              ) : (
-                <div className="space-y-2">
-                  {players.map((player) => (
-                    <div
-                      key={player.id}
-                      className="glass-item flex items-center gap-3 p-2"
-                    >
-                      <div className="avatar-chrome flex-shrink-0">
-                        {player.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                          <img src={player.image} alt={player.name} className="w-10 h-10" />
-                        ) : (
-                          <span
-                            className="glass-placeholder w-10 h-10 flex items-center justify-center text-xs rounded-full"
-                            style={{ fontFamily: 'var(--font-terminal), monospace' }}
-                          >
-                            ?
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className="text-sm font-medium truncate"
-                        style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-strong)' }}
-                      >
-                        {player.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <hr className="chrome-divider" />
+            {players.length === 0 ? (
+              <p className="body-text text-center">En attente de joueurs…</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {players.map((player) => (
+                  <div key={player.id} className="bento-card-soft flex items-center gap-3">
+                    {player.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                      <img src={player.image} alt={player.name} className="avatar-circle w-10 h-10 flex-shrink-0" />
+                    ) : (
+                      <span className="avatar-placeholder w-10 h-10 flex-shrink-0">—</span>
+                    )}
+                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                      {player.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               type="button"
               onClick={handleStartGame}
               disabled={starting}
-              className="y2k-btn y2k-btn-green w-full"
+              className="btn-pill btn-pill-primary w-full"
             >
-              {starting ? '⏳ ...' : '▶ Démarrer la partie'}
+              {starting ? '…' : 'Démarrer la partie'}
             </button>
           </div>
         </div>
@@ -203,7 +170,12 @@ export default function HostPage() {
 
   // status === 'playing'
   return (
-    <div className="min-h-screen flex flex-col gap-6 p-4 sm:p-6">
+    <div className="page-shell page-enter">
+      <TopBar
+        title={`Partie ${code}`}
+        items={[{ label: 'Joueurs', value: String(players.length) }]}
+      />
+
       <NarrateurPanel
         players={players}
         onGiveItem={handleGiveItem}
@@ -212,17 +184,15 @@ export default function HostPage() {
         onSummonCroqueMonsieur={spawnVideo}
       />
 
-      <header className="neon-banner">
-        <span className="sparkle">◆ PARTIE {code} EN COURS ◆</span>
-      </header>
+      <div className="flex flex-col gap-6 px-4 py-8 sm:px-6">
+        <PlayersOverview players={players} />
 
-      <PlayersOverview players={players} />
-
-      <ActionRequests
-        requests={pendingRequests}
-        players={players}
-        onResolve={handleResolveRequest}
-      />
+        <ActionRequests
+          requests={pendingRequests}
+          players={players}
+          onResolve={handleResolveRequest}
+        />
+      </div>
 
       {videoOverlays.map(({ id, style }) => (
         <ActionVideo

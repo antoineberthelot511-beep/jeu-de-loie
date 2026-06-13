@@ -17,7 +17,14 @@
       "Bash(netstat -ano)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001)",
       "Bash(npx eslint *)",
-      "Bash(npm i *)"
+      "Bash(npm i *)",
+      "Bash(curl -sf http://localhost:3000 -o /dev/null -w \"%{http_code}\\\\n\" --max-time 5)",
+      "Bash(npx playwright *)",
+      "Bash(node screenshot.mjs)",
+      "Bash(npx --yes -p playwright node screenshot.mjs)",
+      "Bash(npm root *)",
+      "Bash(NODE_PATH=\"/c/Users/Admin/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules\" node screenshot.mjs)",
+      "Bash(grep -v \"set-state-in-effect\\\\|react-hooks\\\\|^$\\\\|Effects are intended\\\\|^\\\\* \\\\|setState\\\\|cascading\\\\|^C:.*page.tsx:27\\\\|^C:.*useGame.ts:23\\\\|^C:.*useRealtimePlayer.ts:17\")"
     ]
   }
 }

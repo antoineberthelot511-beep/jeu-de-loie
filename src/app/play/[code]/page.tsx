@@ -6,7 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
 import { DESTINATIONS, locationName } from '@/lib/locations';
-import TitleBar from '@/components/TitleBar';
+import TopBar from '@/components/TopBar';
+import Reveal from '@/components/Reveal';
 import type { Player } from '@/types/game';
 
 export default function PlayPage() {
@@ -61,231 +62,161 @@ export default function PlayPage() {
     });
 
     if (insertError) {
-      setRequestMessage("⚠ Erreur lors de l'envoi ⚠");
+      setRequestMessage('error:Erreur lors de l\'envoi.');
     } else {
       setRequestText('');
-      setRequestMessage('✦ Demande envoyée au narrateur ✦');
+      setRequestMessage('ok:Demande envoyée au narrateur.');
     }
 
     setSendingRequest(false);
   };
 
+  if (loading) {
+    return (
+      <div className="page-shell page-enter items-center justify-center px-4 py-12">
+        <p className="body-text">Chargement…</p>
+      </div>
+    );
+  }
+
+  if (error || !player) {
+    return (
+      <div className="page-shell page-enter items-center justify-center px-4 py-12">
+        <div className="bento-card w-full max-w-sm text-center">
+          <p className="danger-text">{error ?? 'Joueur introuvable.'}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-3">
-      <div className="y2k-window w-full max-w-sm">
-        <TitleBar title={`Joueur - ${code}`} />
+    <div className="page-shell page-enter">
+      <TopBar
+        title={code}
+        items={[
+          { label: 'Solde', value: `${player.money}` },
+          ...(status === 'playing' ? [{ label: 'Lieu', value: locationName(player.location) }] : []),
+        ]}
+      />
 
-        <div className="y2k-window-content space-y-6">
-          {loading ? (
-            <p className="y2k-label text-center">// chargement... //</p>
-          ) : error ? (
-            <p
-              className="text-center text-sm"
-              style={{
-                fontFamily: 'var(--font-display), sans-serif',
-                color: 'var(--magenta)',
-              }}
-            >
-              ⚠ {error} ⚠
-            </p>
-          ) : !player ? (
-            <p
-              className="text-center text-sm"
-              style={{
-                fontFamily: 'var(--font-display), sans-serif',
-                color: 'var(--magenta)',
-              }}
-            >
-              ⚠ Joueur introuvable ⚠
-            </p>
+      <div className="flex flex-col items-center gap-6 px-4 py-8 sm:px-6 max-w-md mx-auto w-full">
+        <div className="flex flex-col items-center gap-3 text-center">
+          {player.image ? (
+            // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+            <img src={player.image} alt={player.name} className="avatar-circle w-24 h-24 sm:w-28 sm:h-28" />
           ) : (
-            <>
-              {/* En-tête */}
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="avatar-chrome">
-                  {player.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                    <img
-                      src={player.image}
-                      alt={player.name}
-                      className="w-24 h-24 sm:w-28 sm:h-28"
-                    />
-                  ) : (
-                    <span
-                      className="glass-placeholder w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center text-sm rounded-full"
-                      style={{ fontFamily: 'var(--font-terminal), monospace' }}
-                    >
-                      ?
-                    </span>
-                  )}
+            <span className="avatar-placeholder w-24 h-24 sm:w-28 sm:h-28">—</span>
+          )}
+          <h1 className="page-title text-3xl sm:text-4xl">{player.name}</h1>
+        </div>
+
+        {status === 'lobby' ? (
+          <p className="body-text text-center">
+            En attente que le narrateur démarre la partie…
+          </p>
+        ) : (
+          <>
+            {/* Se déplacer */}
+            <Reveal className="w-full">
+              <div className="bento-card w-full flex flex-col gap-3">
+                <h2 className="section-title">Se déplacer</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  {DESTINATIONS.map((dest) => {
+                    const isActive = player.location === dest.id;
+
+                    return isActive ? (
+                      <span key={dest.id} className="badge w-full justify-center">
+                        {dest.name}
+                      </span>
+                    ) : (
+                      <button
+                        key={dest.id}
+                        type="button"
+                        onClick={() => handleMove(dest.id)}
+                        className="btn-pill btn-pill-secondary"
+                      >
+                        {dest.name}
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+            </Reveal>
 
-                <h1 className="chrome-text text-2xl sm:text-3xl">
-                  <span className="sparkle">{player.name}</span>
-                </h1>
+            {/* Inventaire */}
+            <Reveal className="w-full" delay={80}>
+              <div className="bento-card w-full flex flex-col gap-3">
+                <h2 className="section-title">Inventaire</h2>
 
-                <p
-                  className="text-base font-medium"
-                  style={{ color: 'var(--acid-green)' }}
-                >
-                  💰 {player.money} roupies
-                </p>
+                {player.inventory.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {player.inventory.map((item) => (
+                      <div key={item.id} className="bento-card-soft flex items-center gap-3">
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="avatar-placeholder w-10 h-10 rounded-xl flex-shrink-0">—</div>
+                        )}
+                        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                          <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            {item.name}
+                          </span>
+                          {item.durability !== undefined && (
+                            <span className="text-xs" style={{ color: 'var(--accent)' }}>
+                              Durabilité {item.durability}
+                            </span>
+                          )}
+                          {item.description && (
+                            <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                              {item.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="body-text">Inventaire vide.</p>
+                )}
+              </div>
+            </Reveal>
 
-                {status === 'playing' && (
-                  <p className="y2k-label">
-                    📍 {locationName(player.location)}
+            {/* Demander au narrateur */}
+            <Reveal className="w-full" delay={160}>
+              <div className="bento-card w-full flex flex-col gap-3">
+                <h2 className="section-title">Demander au narrateur</h2>
+
+                <form onSubmit={handleSendRequest} className="flex flex-col gap-3">
+                  <textarea
+                    value={requestText}
+                    onChange={(e) => setRequestText(e.target.value)}
+                    placeholder="Ex: Je voudrais fouiller la poubelle..."
+                    rows={3}
+                    className="input-field resize-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sendingRequest || requestText.trim() === ''}
+                    className="btn-pill btn-pill-primary w-full"
+                  >
+                    {sendingRequest ? 'Envoi…' : 'Envoyer la demande'}
+                  </button>
+                </form>
+
+                {requestMessage && (
+                  <p className={requestMessage.startsWith('error:') ? 'danger-text' : 'success-text'}>
+                    {requestMessage.replace(/^(error|ok):/, '')}
                   </p>
                 )}
               </div>
-
-              <hr className="chrome-divider" />
-
-              {status === 'lobby' ? (
-                <p className="y2k-label text-center text-sm leading-relaxed">
-                  <span className="sparkle">
-                    En attente que le narrateur démarre la partie...
-                  </span>
-                </p>
-              ) : (
-                <>
-                  {/* Se déplacer */}
-                  <div className="space-y-2">
-                    <h2 className="chrome-text text-lg text-center mb-2">
-                      <span className="sparkle">Se déplacer</span>
-                    </h2>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {DESTINATIONS.map((dest) => {
-                        const isActive = player.location === dest.id;
-
-                        return (
-                          <button
-                            key={dest.id}
-                            type="button"
-                            disabled={isActive}
-                            onClick={() => handleMove(dest.id)}
-                            className="y2k-btn"
-                            style={{
-                              padding: '0.9rem 0.5rem',
-                              fontSize: '0.85rem',
-                              ...(isActive
-                                ? {
-                                    boxShadow:
-                                      'inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a',
-                                  }
-                                : {}),
-                            }}
-                          >
-                            {isActive ? `▶ ${dest.name} ◀` : dest.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <hr className="chrome-divider" />
-
-                  {/* Inventaire */}
-                  <div className="space-y-2 text-left">
-                    <h2 className="chrome-text text-lg text-center mb-2">
-                      <span className="sparkle">Inventaire</span>
-                    </h2>
-
-                    {player.inventory.length > 0 ? (
-                      player.inventory.map((item) => (
-                        <div
-                          key={item.id}
-                          className="glass-item flex items-center gap-2 p-2"
-                        >
-                          {item.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-10 h-10 object-cover rounded-md flex-shrink-0 border-2"
-                              style={{ borderColor: 'rgba(255,255,255,0.6)' }}
-                            />
-                          ) : (
-                            <div className="glass-placeholder w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0">
-                              ✦
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1 space-y-0.5">
-                            <span
-                              className="block text-sm font-medium truncate"
-                              style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-strong)' }}
-                            >
-                              {item.name}
-                            </span>
-                            {item.durability !== undefined && (
-                              <span
-                                className="block text-xs"
-                                style={{ color: 'var(--acid-green)' }}
-                              >
-                                ⚙ Durabilité : {item.durability}
-                              </span>
-                            )}
-                            {item.description && (
-                              <span
-                                className="block text-xs"
-                                style={{ fontFamily: 'var(--font-terminal), monospace', color: 'var(--text-soft)' }}
-                              >
-                                {item.description}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="y2k-label text-center">// inventaire vide //</p>
-                    )}
-                  </div>
-
-                  <hr className="chrome-divider" />
-
-                  {/* Demander au narrateur */}
-                  <div className="space-y-2">
-                    <h2 className="chrome-text text-lg text-center mb-2">
-                      <span className="sparkle">Demander au narrateur</span>
-                    </h2>
-
-                    <form onSubmit={handleSendRequest} className="space-y-2">
-                      <textarea
-                        value={requestText}
-                        onChange={(e) => setRequestText(e.target.value)}
-                        placeholder="Ex: Je voudrais fouiller la poubelle..."
-                        rows={3}
-                        className="y2k-input w-full resize-none"
-                      />
-                      <button
-                        type="submit"
-                        disabled={sendingRequest || requestText.trim() === ''}
-                        className="y2k-btn y2k-btn-magenta w-full"
-                        style={{ padding: '0.9rem 0.5rem' }}
-                      >
-                        {sendingRequest ? '⏳ Envoi...' : '✦ Envoyer la demande ✦'}
-                      </button>
-                    </form>
-
-                    {requestMessage && (
-                      <p
-                        className="text-center text-sm"
-                        style={{
-                          fontFamily: 'var(--font-display), sans-serif',
-                          color: requestMessage.startsWith('⚠')
-                            ? 'var(--magenta)'
-                            : 'var(--acid-green)',
-                        }}
-                      >
-                        {requestMessage}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </div>
+            </Reveal>
+          </>
+        )}
       </div>
     </div>
   );

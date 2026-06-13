@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Player } from "@/types/game";
-import TitleBar from "@/components/TitleBar";
+import Reveal from "@/components/Reveal";
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 4;
@@ -84,40 +84,28 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <form onSubmit={handleSubmit} className="y2k-window w-full max-w-2xl">
-        <TitleBar title="Setup - Nouvelle partie" />
+    <div className="page-shell page-enter items-center justify-center px-4 py-12 sm:px-6">
+      <form onSubmit={handleSubmit} className="w-full max-w-2xl flex flex-col items-center gap-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="eyebrow">Nouvelle partie</span>
+          <h1 className="page-title">Configuration des joueurs</h1>
+        </div>
 
-        <div className="y2k-window-content space-y-6">
-          <h1 className="chrome-text text-2xl sm:text-3xl text-center">
-            CONFIGURATION DES JOUEURS
-          </h1>
-
-          <div className="space-y-4">
-            {drafts.map((player, index) => (
-              <div
-                key={player.id}
-                className="glass-item flex items-center gap-4 p-3"
-              >
+        <div className="w-full flex flex-col gap-3">
+          {drafts.map((player, index) => (
+            <Reveal key={player.id} delay={index * 60}>
+              <div className="bento-card flex items-center gap-4">
                 <div className="flex-shrink-0">
-                  <label
-                    htmlFor={`image-${player.id}`}
-                    className="avatar-chrome cursor-pointer"
-                  >
+                  <label htmlFor={`image-${player.id}`} className="cursor-pointer">
                     {player.image ? (
                       // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
                       <img
                         src={player.image}
                         alt={`Avatar joueur ${index + 1}`}
-                        className="w-16 h-16"
+                        className="avatar-circle w-16 h-16"
                       />
                     ) : (
-                      <span
-                        className="glass-placeholder w-16 h-16 flex items-center justify-center text-xs text-center rounded-full"
-                        style={{ fontFamily: "var(--font-terminal), monospace" }}
-                      >
-                        PHOTO
-                      </span>
+                      <span className="avatar-placeholder w-16 h-16">Photo</span>
                     )}
                   </label>
                   <input
@@ -125,22 +113,18 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) =>
-                      handleImageChange(player.id, e.target.files?.[0])
-                    }
+                    onChange={(e) => handleImageChange(player.id, e.target.files?.[0])}
                   />
                 </div>
 
                 <div className="flex-1">
-                  <label className="y2k-label block mb-1">
-                    Joueur {index + 1}
-                  </label>
+                  <label className="field-label">Joueur {index + 1}</label>
                   <input
                     type="text"
                     value={player.name}
                     onChange={(e) => handleNameChange(player.id, e.target.value)}
                     placeholder="Nom du joueur"
-                    className="y2k-input w-full"
+                    className="input-field"
                   />
                 </div>
 
@@ -148,44 +132,31 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
                   <button
                     type="button"
                     onClick={() => handleRemovePlayer(player.id)}
-                    className="y2k-btn y2k-btn-magenta"
-                    style={{ padding: "0.4rem 0.7rem", fontSize: "1rem" }}
+                    className="btn-pill btn-pill-danger btn-pill-sm"
                     aria-label={`Supprimer le joueur ${index + 1}`}
                   >
-                    ×
+                    Retirer
                   </button>
                 )}
               </div>
-            ))}
-          </div>
+            </Reveal>
+          ))}
+        </div>
 
-          {error && (
-            <p
-              className="text-center text-sm"
-              style={{
-                fontFamily: "var(--font-display), sans-serif",
-                color: "var(--magenta)",
-              }}
-            >
-              ⚠ {error} ⚠
-            </p>
-          )}
+        {error && <p className="danger-text">{error}</p>}
 
-          <hr className="chrome-divider" />
-
-          <div className="flex items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={handleAddPlayer}
-              disabled={drafts.length >= MAX_PLAYERS}
-              className="y2k-btn y2k-btn-chrome"
-            >
-              ＋ Ajouter un joueur
-            </button>
-            <button type="submit" className="y2k-btn y2k-btn-green">
-              ▶ Démarrer la partie
-            </button>
-          </div>
+        <div className="flex w-full items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={handleAddPlayer}
+            disabled={drafts.length >= MAX_PLAYERS}
+            className="btn-link"
+          >
+            + Ajouter un joueur
+          </button>
+          <button type="submit" className="btn-pill btn-pill-primary">
+            Démarrer la partie
+          </button>
         </div>
       </form>
     </div>
