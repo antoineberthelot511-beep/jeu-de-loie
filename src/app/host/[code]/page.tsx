@@ -5,13 +5,12 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
-import { worlds } from '@/data/worlds';
-import Hub from '@/components/Hub';
-import World from '@/components/World';
-import Teleporteur from '@/components/Teleporteur';
+import { useActionRequests } from '@/hooks/useActionRequests';
 import NarrateurPanel from '@/components/NarrateurPanel';
+import PlayersOverview from '@/components/PlayersOverview';
+import ActionRequests from '@/components/ActionRequests';
 import ActionVideo from '@/components/ActionVideo';
-import type { Item, World as WorldData } from '@/types/game';
+import type { Item } from '@/types/game';
 
 export default function HostPage() {
   const params = useParams<{ code: string }>();
@@ -19,6 +18,7 @@ export default function HostPage() {
 
   const { gameId, status, setStatus, loading, error } = useGameStatus(code);
   const players = useRealtimePlayers(gameId);
+  const pendingRequests = useActionRequests(gameId);
 
   const [starting, setStarting] = useState(false);
   const [videoOverlays, setVideoOverlays] = useState<
@@ -37,8 +37,8 @@ export default function HostPage() {
     setStarting(false);
   };
 
-  const handleSelectWorld = (world: WorldData) => {
-    document.getElementById(world.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleResolveRequest = (requestId: string) => {
+    void supabase.from('action_requests').update({ status: 'resolved' }).eq('id', requestId);
   };
 
   const spawnVideo = () => {
@@ -218,7 +218,7 @@ export default function HostPage() {
 
   // status === 'playing'
   return (
-    <div className="min-h-screen flex flex-col gap-6 p-4 sm:p-6 pb-56 sm:pb-48">
+    <div className="min-h-screen flex flex-col gap-6 p-4 sm:p-6">
       <NarrateurPanel
         players={players}
         onGiveItem={handleGiveItem}
@@ -231,15 +231,13 @@ export default function HostPage() {
         <span className="sparkle">◆ PARTIE {code} EN COURS ◆</span>
       </header>
 
-      <Hub players={players} onSelectWorld={handleSelectWorld} />
+      <PlayersOverview players={players} />
 
-      {worlds.map((world) => (
-        <div key={world.id} id={world.id}>
-          <World world={world} players={players} />
-        </div>
-      ))}
-
-      <Teleporteur players={players} onTeleport={() => {}} />
+      <ActionRequests
+        requests={pendingRequests}
+        players={players}
+        onResolve={handleResolveRequest}
+      />
 
       {videoOverlays.map(({ id, style }) => (
         <ActionVideo
