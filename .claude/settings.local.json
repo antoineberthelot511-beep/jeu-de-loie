@@ -15,7 +15,8 @@
       "Bash(npx --yes chromium-cli --help)",
       "Bash(curl -s http://localhost:3000)",
       "Bash(netstat -ano)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001)",
+      "Bash(npx eslint *)"
     ]
   }
 }
