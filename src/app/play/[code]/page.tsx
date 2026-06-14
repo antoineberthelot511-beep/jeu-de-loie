@@ -172,6 +172,7 @@ export default function PlayPage() {
 
     video.currentTime = 0;
     video.muted = false;
+    video.volume = 1;
     void video.play();
   }, [showCroqueVideo]);
 
@@ -209,6 +210,7 @@ export default function PlayPage() {
     <video
       ref={croqueVideoRef}
       src="/videos/croque-monsieur.mp4"
+      preload="auto"
       playsInline
       onEnded={() => setShowCroqueVideo(false)}
       style={{
