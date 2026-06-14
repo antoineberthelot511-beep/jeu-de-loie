@@ -20,6 +20,27 @@ export type Player = {
   posY: number;
   croqueCount: number;
   nodeIndex: number;
+  combatAction: "attack" | null;
+  inGoulag: boolean;
+};
+
+export type Combat = {
+  active: boolean;
+  bossName: string;
+  bossHp: number;
+  bossMaxHp: number;
+  round: number;
+  log: string[];
+  victory?: boolean;
+};
+
+export const DEFAULT_COMBAT: Combat = {
+  active: false,
+  bossName: "",
+  bossHp: 0,
+  bossMaxHp: 0,
+  round: 0,
+  log: [],
 };
 
 export type World = {

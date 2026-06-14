@@ -14,6 +14,8 @@ export type PlayerRow = {
   pos_y: number | null;
   croque_count: number | null;
   node_index: number | null;
+  combat_action: string | null;
+  in_goulag: boolean | null;
 };
 
 export function rowToPlayer(row: PlayerRow): Player {
@@ -30,5 +32,7 @@ export function rowToPlayer(row: PlayerRow): Player {
     posY: row.pos_y ?? 50,
     croqueCount: row.croque_count ?? 0,
     nodeIndex: row.node_index ?? 0,
+    combatAction: (row.combat_action as Player["combatAction"]) ?? null,
+    inGoulag: row.in_goulag ?? false,
   };
 }

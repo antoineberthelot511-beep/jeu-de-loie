@@ -11,6 +11,7 @@ type NarratorPowersProps = {
   requests: ActionRequest[];
   onResolve: (requestId: string) => void;
   onSummonCroqueMonsieur: (playerId: string) => void;
+  onStartForestCombat: () => void;
 };
 
 export default function NarratorPowers({
@@ -18,6 +19,7 @@ export default function NarratorPowers({
   requests,
   onResolve,
   onSummonCroqueMonsieur,
+  onStartForestCombat,
 }: NarratorPowersProps) {
   const [croquePlayerId, setCroquePlayerId] = useState("");
   const [judgePlayerId, setJudgePlayerId] = useState("");
@@ -40,6 +42,25 @@ export default function NarratorPowers({
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto w-full flex flex-col gap-6">
       <ActionRequests requests={requests} players={players} onResolve={onResolve} />
+
+      <Reveal delay={40}>
+        <div className="bento-card w-full flex flex-col gap-3">
+          <h3 className="section-title">Forêt mystérieuse</h3>
+          <p className="body-text">
+            Invoque Camarade Mishka, le Grand Ours Rouge, pour un combat collectif. Tous les écrans
+            basculent sur l&apos;écran de combat.
+          </p>
+
+          <button
+            type="button"
+            onClick={onStartForestCombat}
+            disabled={players.length === 0}
+            className="btn-pill btn-pill-danger w-full"
+          >
+            ⚔️ Lancer le combat de la Forêt (Mishka)
+          </button>
+        </div>
+      </Reveal>
 
       <Reveal delay={60}>
         <div className="bento-card w-full flex flex-col gap-3">

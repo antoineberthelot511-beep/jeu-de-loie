@@ -665,6 +665,73 @@ input[type="range"] {
   transform: scale(0.96);
 }
 
+/* ---------- Health bars (combat) ---------- */
+
+.health-bar {
+  width: 100%;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--bg-card-soft);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s var(--ease-apple), background-color 0.4s var(--ease-apple);
+}
+
+.health-bar-fill.is-boss {
+  background: linear-gradient(90deg, #ff453a, #ff9f0a);
+}
+
+.health-bar-fill.is-player {
+  background: linear-gradient(90deg, var(--accent), #34c759);
+}
+
+/* ---------- Combat ---------- */
+
+.combat-boss-emoji {
+  font-size: 4.5rem;
+  line-height: 1;
+}
+
+@keyframes combat-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-2deg); }
+  40% { transform: translateX(6px) rotate(2deg); }
+  60% { transform: translateX(-4px) rotate(-1deg); }
+  80% { transform: translateX(4px) rotate(1deg); }
+}
+
+.combat-boss-emoji.is-hit {
+  animation: combat-shake 0.5s var(--ease-apple);
+}
+
+.combat-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--bg-card-soft);
+  color: var(--text-secondary);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.combat-status-pill.is-ready {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.combat-status-pill.is-goulag {
+  background: var(--danger);
+  color: #ffffff;
+}
+
 /* ---------- Floating panel ---------- */
 
 @keyframes panel-in {

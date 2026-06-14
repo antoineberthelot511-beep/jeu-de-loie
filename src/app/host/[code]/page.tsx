@@ -10,9 +10,10 @@ import NarratorMaps from '@/components/NarratorMaps';
 import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
 import NarratorPowers from '@/components/NarratorPowers';
 import NarratorSettings from '@/components/NarratorSettings';
+import NarratorCombat from '@/components/NarratorCombat';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
-import type { Item } from '@/types/game';
+import type { Combat, Item } from '@/types/game';
 
 const TABS = [
   { id: 'maps', label: 'Maps' },
@@ -25,7 +26,7 @@ export default function HostPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, setStatus, worldImages, loading, error } = useGameStatus(code);
+  const { gameId, status, setStatus, worldImages, combat, loading, error } = useGameStatus(code);
   const players = useRealtimePlayers(gameId);
   const pendingRequests = useActionRequests(gameId);
 
@@ -128,6 +129,30 @@ export default function HostPage() {
       .then();
   };
 
+  // Narrateur action: lance le combat de la Forêt mystérieuse contre Camarade Mishka.
+  const handleStartForestCombat = () => {
+    if (!gameId) return;
+
+    const newCombat: Combat = {
+      active: true,
+      bossName: 'Camarade Mishka',
+      bossHp: 100,
+      bossMaxHp: 100,
+      round: 1,
+      log: [],
+    };
+
+    void supabase.from('games').update({ combat: newCombat }).eq('id', gameId).then();
+
+    players.forEach((player) => {
+      void supabase
+        .from('players')
+        .update({ combat_action: null, in_goulag: false })
+        .eq('id', player.id)
+        .then();
+    });
+  };
+
   if (loading) {
     return (
       <div className="page-shell page-enter items-center justify-center px-4 py-12">
@@ -195,6 +220,11 @@ export default function HostPage() {
     );
   }
 
+  // Combat actif : tous les écrans basculent sur l'écran de combat.
+  if (combat.active) {
+    return <NarratorCombat gameId={gameId} combat={combat} players={players} />;
+  }
+
   // status === 'playing'
   return (
     <div className="page-shell page-enter">
@@ -224,6 +254,7 @@ export default function HostPage() {
           requests={pendingRequests}
           onResolve={handleResolveRequest}
           onSummonCroqueMonsieur={handleSummonCroqueMonsieur}
+          onStartForestCombat={handleStartForestCombat}
         />
       )}
 

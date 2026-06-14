@@ -5,16 +5,18 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
+import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
 import { locationName } from '@/lib/locations';
 import TopBar from '@/components/TopBar';
 import Reveal from '@/components/Reveal';
 import GameBoard from '@/components/GameBoard';
+import PlayerCombat from '@/components/PlayerCombat';
 
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, loading: statusLoading, error: statusError } = useGameStatus(code);
+  const { gameId, status, combat, loading: statusLoading, error: statusError } = useGameStatus(code);
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -32,6 +34,12 @@ export default function PlayPage() {
   }, []);
 
   const { player, loading: playerLoading } = useRealtimePlayer(playerId);
+  const players = useRealtimePlayers(gameId);
+
+  const handleAttack = () => {
+    if (!playerId) return;
+    void supabase.from('players').update({ combat_action: 'attack' }).eq('id', playerId).then();
+  };
 
   const [requestText, setRequestText] = useState('');
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -212,6 +220,11 @@ export default function PlayPage() {
         </div>
       </div>
     );
+  }
+
+  // Combat actif : tous les écrans basculent sur l'écran de combat.
+  if (combat.active) {
+    return <PlayerCombat combat={combat} player={player} players={players} onAttack={handleAttack} />;
   }
 
   const requestForm = (
