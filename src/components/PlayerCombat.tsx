@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { Combat, Player } from "@/types/game";
 import HealthBar from "@/components/HealthBar";
+import ImpactBurst from "@/components/ImpactBurst";
 import Reveal from "@/components/Reveal";
 
 const PLAYER_MAX_LIFE = 100;
@@ -14,6 +16,21 @@ type PlayerCombatProps = {
 };
 
 export default function PlayerCombat({ combat, player, players, onAttack }: PlayerCombatProps) {
+  const prevBossHpRef = useRef(combat.bossHp);
+  const [hitTrigger, setHitTrigger] = useState(0);
+  const [isHit, setIsHit] = useState(false);
+
+  useEffect(() => {
+    if (combat.bossHp < prevBossHpRef.current) {
+      setHitTrigger((t) => t + 1);
+      setIsHit(true);
+      const timeout = setTimeout(() => setIsHit(false), 500);
+      prevBossHpRef.current = combat.bossHp;
+      return () => clearTimeout(timeout);
+    }
+    prevBossHpRef.current = combat.bossHp;
+  }, [combat.bossHp]);
+
   if (combat.victory) {
     return (
       <div className="page-shell page-enter items-center justify-center px-4 py-10 sm:px-6">
@@ -44,8 +61,8 @@ export default function PlayerCombat({ combat, player, players, onAttack }: Play
       </div>
 
       <Reveal className="w-full max-w-md">
-        <div className="bento-card w-full flex flex-col items-center gap-3">
-          <span className="combat-boss-emoji">🐻</span>
+        <div className="bento-card w-full flex flex-col items-center gap-3" style={{ position: "relative" }}>
+          <span className={`combat-boss-emoji ${isHit ? "is-hit" : ""}`}>🐻</span>
           <div className="w-full flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               <span>{combat.bossName}</span>
@@ -53,6 +70,7 @@ export default function PlayerCombat({ combat, player, players, onAttack }: Play
             </div>
             <HealthBar value={combat.bossHp} max={combat.bossMaxHp} variant="boss" />
           </div>
+          <ImpactBurst trigger={hitTrigger} />
         </div>
       </Reveal>
 

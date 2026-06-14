@@ -9,10 +9,10 @@ type GameBoardProps = {
 };
 
 const NODE_STYLES: Record<string, { background: string; color: string }> = {
-  start: { background: "var(--accent)", color: "#ffffff" },
+  start: { background: "var(--success)", color: "#ffffff" },
   fin: { background: "var(--danger)", color: "#ffffff" },
   epicerie: { background: "var(--bg-card)", color: "var(--text-primary)" },
-  event: { background: "var(--bg-card)", color: "var(--text-secondary)" },
+  event: { background: "var(--secondary-soft)", color: "var(--text-primary)" },
 };
 
 export default function GameBoard({ players }: GameBoardProps) {
@@ -20,10 +20,11 @@ export default function GameBoard({ players }: GameBoardProps) {
 
   return (
     <div
-      className="relative w-full rounded-[22px] overflow-hidden"
+      className="relative w-full rounded-[22px] overflow-hidden comic-panel"
       style={{
         aspectRatio: "4 / 5",
-        background: "linear-gradient(135deg, var(--bg-card-soft), var(--bg-card))",
+        background: "var(--bg-card-soft)",
+        border: "var(--border-thick)",
         boxShadow: "var(--shadow-card)",
       }}
     >
@@ -37,9 +38,10 @@ export default function GameBoard({ players }: GameBoardProps) {
         <polyline
           points={pathPoints}
           fill="none"
-          stroke="var(--accent)"
-          strokeOpacity="0.3"
-          strokeWidth="1"
+          stroke="var(--ink)"
+          strokeOpacity="0.35"
+          strokeWidth="2"
+          strokeDasharray="4 3"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
@@ -61,12 +63,14 @@ export default function GameBoard({ players }: GameBoardProps) {
             }}
           >
             <div
-              className="relative flex items-center justify-center rounded-2xl overflow-hidden"
+              className="relative flex items-center justify-center overflow-hidden"
               style={{
                 width: "2.5rem",
                 height: "2.5rem",
+                borderRadius: "12px",
                 background: style.background,
-                boxShadow: "var(--shadow-card)",
+                border: "3px solid var(--ink)",
+                boxShadow: "var(--shadow-card-sm)",
               }}
             >
               {node.type === "epicerie" ? (
@@ -78,14 +82,17 @@ export default function GameBoard({ players }: GameBoardProps) {
                   className="object-cover"
                 />
               ) : (
-                <span className="text-xs font-semibold" style={{ color: style.color }}>
+                <span
+                  className="text-sm"
+                  style={{ color: style.color, fontFamily: "var(--font-display)" }}
+                >
                   {node.id}
                 </span>
               )}
             </div>
 
             <span
-              className="text-[10px] font-medium text-center leading-tight max-w-[4.5rem]"
+              className="text-[10px] font-bold text-center leading-tight max-w-[4.5rem]"
               style={{ color: "var(--text-primary)" }}
             >
               {node.label}
@@ -115,19 +122,9 @@ export default function GameBoard({ players }: GameBoardProps) {
           >
             {player.image ? (
               // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-              <img
-                src={player.image}
-                alt={player.name}
-                className="avatar-circle w-8 h-8"
-                style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.9), var(--shadow-card)" }}
-              />
+              <img src={player.image} alt={player.name} className="avatar-circle w-8 h-8" />
             ) : (
-              <span
-                className="avatar-placeholder w-8 h-8"
-                style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.9)" }}
-              >
-                —
-              </span>
+              <span className="avatar-placeholder w-8 h-8">—</span>
             )}
           </div>
         );

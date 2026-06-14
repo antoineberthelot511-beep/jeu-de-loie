@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Bangers, Fredoka } from "next/font/google";
 import "./globals.css";
+
+const bangers = Bangers({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bangers",
+  display: "swap",
+});
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-fredoka",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Jeu de l'oie",
@@ -12,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="h-full antialiased">
+    <html lang="fr" className={`h-full antialiased ${bangers.variable} ${fredoka.variable}`}>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
       </body>

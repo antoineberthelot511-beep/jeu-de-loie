@@ -275,8 +275,8 @@ export default function PlayPage() {
 
           {player.narratorMessage && (
             <Reveal className="w-full">
-              <div className="bento-card w-full flex flex-col gap-1.5" style={{ background: 'var(--accent-soft)' }}>
-                <span className="eyebrow" style={{ color: 'var(--accent)' }}>Message du narrateur</span>
+              <div className="speech-bubble w-full flex flex-col gap-1.5">
+                <span className="eyebrow">📣 Message du narrateur</span>
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', lineHeight: 1.5 }}>
                   {player.narratorMessage}
                 </p>
@@ -325,8 +325,8 @@ export default function PlayPage() {
       <div className="px-4 pb-4 sm:px-6 max-w-2xl mx-auto w-full flex flex-col gap-2">
         {player.narratorMessage && (
           <Reveal>
-            <div className="bento-card-soft w-full flex flex-col gap-1" style={{ background: 'var(--accent-soft)' }}>
-              <span className="eyebrow" style={{ color: 'var(--accent)' }}>Message du narrateur</span>
+            <div className="speech-bubble w-full flex flex-col gap-1">
+              <span className="eyebrow">📣 Message du narrateur</span>
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', lineHeight: 1.5 }}>
                 {player.narratorMessage}
               </p>
