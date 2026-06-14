@@ -18,7 +18,7 @@ export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, loading: statusLoading, error: statusError } = useGameStatus(code);
+  const { gameId, status, worldImages, loading: statusLoading, error: statusError } = useGameStatus(code);
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -43,6 +43,20 @@ export default function PlayPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
 
+  const [editName, setEditName] = useState('');
+  const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+
+  const handleOpenSettings = () => {
+    if (player) {
+      setEditName(player.name);
+      setEditAvatar(player.image || undefined);
+    }
+    setProfileMessage(null);
+    setShowSettings(true);
+  };
+
   const loading = statusLoading || playerLoading;
   const error = localError ?? statusError;
 
@@ -51,7 +65,8 @@ export default function PlayPage() {
     void supabase
       .from('players')
       .update({ location: destination, pos_x: 50, pos_y: 50 })
-      .eq('id', playerId);
+      .eq('id', playerId)
+      .then();
   };
 
   const handleDpadMove = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -68,7 +83,40 @@ export default function PlayPage() {
     posX = Math.min(100, Math.max(0, posX));
     posY = Math.min(100, Math.max(0, posY));
 
-    void supabase.from('players').update({ pos_x: posX, pos_y: posY }).eq('id', playerId);
+    void supabase.from('players').update({ pos_x: posX, pos_y: posY }).eq('id', playerId).then();
+  };
+
+  const handleAvatarChange = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') setEditAvatar(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmed = editName.trim();
+    if (!trimmed || !playerId) return;
+
+    setSavingProfile(true);
+    setProfileMessage(null);
+
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({ name: trimmed, avatar: editAvatar ?? null })
+      .eq('id', playerId);
+
+    if (updateError) {
+      setProfileMessage('error:Erreur lors de la mise à jour du profil.');
+    } else {
+      setProfileMessage('ok:Profil mis à jour.');
+    }
+
+    setSavingProfile(false);
   };
 
   const handleSendRequest = async (e: React.FormEvent) => {
@@ -182,6 +230,7 @@ export default function PlayPage() {
 
   // status === 'playing'
   const currentWorld = worlds.find((w) => w.id === player.location);
+  const sceneImage = worldImages[player.location] ?? currentWorld?.sceneImage;
 
   return (
     <div className="page-shell page-enter">
@@ -190,7 +239,7 @@ export default function PlayPage() {
         <div className="glass-bar-inner">
           <button
             type="button"
-            onClick={() => setShowSettings(true)}
+            onClick={handleOpenSettings}
             className="fab"
             style={{ width: '2.75rem', height: '2.75rem', fontSize: '1.15rem', flexShrink: 0 }}
             aria-label="Réglages"
@@ -226,9 +275,9 @@ export default function PlayPage() {
           className="relative w-full flex-1 rounded-[22px] overflow-hidden"
           style={{ boxShadow: 'var(--shadow-card)', minHeight: '18rem' }}
         >
-          {currentWorld?.sceneImage ? (
+          {sceneImage ? (
             <Image
-              src={currentWorld.sceneImage}
+              src={sceneImage}
               alt={locationName(player.location)}
               fill
               sizes="(max-width: 640px) 100vw, 42rem"
@@ -397,9 +446,57 @@ export default function PlayPage() {
       {showSettings && (
         <div className="modal-overlay" onClick={() => setShowSettings(false)}>
           <div
-            className="floating-panel bento-card w-full max-w-md flex flex-col gap-3"
+            className="floating-panel bento-card w-full max-w-md max-h-[85vh] overflow-y-auto flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
           >
+            <h2 className="section-title">Profil</h2>
+            <form onSubmit={handleSaveProfile} className="flex flex-col gap-3">
+              <div className="flex flex-col items-center gap-2">
+                <label htmlFor="profile-avatar-upload" className="cursor-pointer">
+                  {editAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                    <img src={editAvatar} alt="Avatar" className="avatar-circle w-20 h-20" />
+                  ) : (
+                    <span className="avatar-placeholder w-20 h-20">Photo</span>
+                  )}
+                </label>
+                <input
+                  id="profile-avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleAvatarChange(e.target.files?.[0])}
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Pseudo</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Ton pseudo"
+                  className="input-field"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingProfile || editName.trim() === ''}
+                className="btn-pill btn-pill-primary w-full"
+              >
+                {savingProfile ? 'Enregistrement…' : 'Enregistrer le profil'}
+              </button>
+
+              {profileMessage && (
+                <p className={profileMessage.startsWith('error:') ? 'danger-text' : 'success-text'}>
+                  {profileMessage.replace(/^(error|ok):/, '')}
+                </p>
+              )}
+            </form>
+
+            <hr className="divider" />
+
             <h2 className="section-title">Demander au narrateur</h2>
             {requestForm}
 

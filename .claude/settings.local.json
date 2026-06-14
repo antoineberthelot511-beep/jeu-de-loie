@@ -25,7 +25,27 @@
       "Bash(npm root *)",
       "Bash(NODE_PATH=\"/c/Users/Admin/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules\" node screenshot.mjs)",
       "Bash(grep -v \"set-state-in-effect\\\\|react-hooks\\\\|^$\\\\|Effects are intended\\\\|^\\\\* \\\\|setState\\\\|cascading\\\\|^C:.*page.tsx:27\\\\|^C:.*useGame.ts:23\\\\|^C:.*useRealtimePlayer.ts:17\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/ --max-time 5)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/ --max-time 5)",
+      "Bash(chromium-cli --help)",
+      "Bash(node scripts/check-schema.mjs)",
+      "Bash(node scripts/setup-test-game.mjs)",
+      "Bash(curl *)",
+      "Bash(node debug-play.mjs)",
+      "Bash(node scripts/check-player.mjs)",
+      "Bash(powershell -NoProfile -Command \"Get-Process -Id 25400 | Select-Object Id,ProcessName,Path\")",
+      "Bash(powershell -NoProfile -Command \"\\(Get-CimInstance Win32_Process -Filter 'ProcessId=25400'\\).CommandLine\")",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 25400 -Force\")",
+      "Bash(node debug-play2.mjs)",
+      "Bash(node scripts/reset-player.mjs)",
+      "Bash(node debug-play3.mjs)",
+      "Bash(node *)",
+      "Bash(ls node_modules/@supabase/)",
+      "Bash(find node_modules/@supabase -maxdepth 4 -iname \"*builder*\")",
+      "Bash(rm -rf scripts debug-*.png)",
+      "Bash(rm -f /c/Users/Admin/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/debug-play*.mjs)",
+      "Bash(cat eslint.config.mjs)",
+      "Bash(cat .eslintrc.json)",
+      "Bash(cat .eslintrc.js)"
     ]
   }
 }

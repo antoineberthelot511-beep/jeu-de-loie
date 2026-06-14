@@ -5,9 +5,12 @@ import { supabase } from "@/lib/supabase";
 
 export type GameStatus = "lobby" | "playing";
 
+export type WorldImages = Record<string, string>;
+
 export function useGameStatus(code: string) {
   const [gameId, setGameId] = useState<string | null>(null);
   const [status, setStatus] = useState<GameStatus | null>(null);
+  const [worldImages, setWorldImages] = useState<WorldImages>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +22,7 @@ export function useGameStatus(code: string) {
     const load = async () => {
       const { data, error: gameError } = await supabase
         .from("games")
-        .select("id, status")
+        .select("id, status, world_images")
         .eq("code", code)
         .maybeSingle();
 
@@ -33,6 +36,7 @@ export function useGameStatus(code: string) {
 
       setGameId(data.id);
       setStatus(data.status as GameStatus);
+      setWorldImages((data.world_images as WorldImages | null) ?? {});
       setLoading(false);
     };
 
@@ -43,7 +47,7 @@ export function useGameStatus(code: string) {
     };
   }, [code]);
 
-  // Realtime: react to the game's status changing (lobby -> playing)
+  // Realtime: react to the game's status or world images changing
   useEffect(() => {
     if (!gameId) return;
 
@@ -53,7 +57,9 @@ export function useGameStatus(code: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
         (payload) => {
-          setStatus((payload.new as { status: GameStatus }).status);
+          const row = payload.new as { status: GameStatus; world_images: WorldImages | null };
+          setStatus(row.status);
+          setWorldImages(row.world_images ?? {});
         }
       )
       .subscribe();
@@ -63,5 +69,5 @@ export function useGameStatus(code: string) {
     };
   }, [gameId]);
 
-  return { gameId, status, setStatus, loading, error };
+  return { gameId, status, setStatus, worldImages, loading, error };
 }

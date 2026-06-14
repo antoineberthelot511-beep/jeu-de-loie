@@ -9,6 +9,7 @@ import { useActionRequests } from '@/hooks/useActionRequests';
 import NarratorMaps from '@/components/NarratorMaps';
 import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
 import NarratorPowers from '@/components/NarratorPowers';
+import NarratorSettings from '@/components/NarratorSettings';
 import ActionVideo from '@/components/ActionVideo';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
@@ -18,13 +19,14 @@ const TABS = [
   { id: 'maps', label: 'Maps' },
   { id: 'players', label: 'Joueurs' },
   { id: 'narrator', label: 'Narrateur' },
+  { id: 'settings', label: 'Réglages' },
 ];
 
 export default function HostPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, setStatus, loading, error } = useGameStatus(code);
+  const { gameId, status, setStatus, worldImages, loading, error } = useGameStatus(code);
   const players = useRealtimePlayers(gameId);
   const pendingRequests = useActionRequests(gameId);
 
@@ -47,7 +49,7 @@ export default function HostPage() {
   };
 
   const handleResolveRequest = (requestId: string) => {
-    void supabase.from('action_requests').update({ status: 'resolved' }).eq('id', requestId);
+    void supabase.from('action_requests').update({ status: 'resolved' }).eq('id', requestId).then();
   };
 
   const spawnVideo = () => {
@@ -77,13 +79,15 @@ export default function HostPage() {
         void supabase
           .from('players')
           .update({ inventory: [...p.inventory, { ...item, id: crypto.randomUUID() }] })
-          .eq('id', p.id);
+          .eq('id', p.id)
+          .then();
       });
     } else {
       void supabase
         .from('players')
         .update({ inventory: [...target.inventory, { ...item, id: crypto.randomUUID() }] })
-        .eq('id', playerId);
+        .eq('id', playerId)
+        .then();
     }
 
     return isCollective;
@@ -96,7 +100,8 @@ export default function HostPage() {
     void supabase
       .from('players')
       .update({ inventory: target.inventory.filter((item) => item.id !== itemId) })
-      .eq('id', playerId);
+      .eq('id', playerId)
+      .then();
   };
 
   const handleAdjustMoney = (playerId: string, amount: number) => {
@@ -106,7 +111,8 @@ export default function HostPage() {
     void supabase
       .from('players')
       .update({ money: Math.max(0, target.money + amount) })
-      .eq('id', playerId);
+      .eq('id', playerId)
+      .then();
   };
 
   const handleAdjustLife = (playerId: string, amount: number) => {
@@ -116,14 +122,16 @@ export default function HostPage() {
     void supabase
       .from('players')
       .update({ life: Math.max(0, target.life + amount) })
-      .eq('id', playerId);
+      .eq('id', playerId)
+      .then();
   };
 
   const handleSendMessage = (playerId: string, message: string) => {
     void supabase
       .from('players')
       .update({ narrator_message: message || null })
-      .eq('id', playerId);
+      .eq('id', playerId)
+      .then();
   };
 
   if (loading) {
@@ -203,7 +211,7 @@ export default function HostPage() {
         <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </TopBar>
 
-      {activeTab === 'maps' && <NarratorMaps players={players} />}
+      {activeTab === 'maps' && <NarratorMaps players={players} worldImages={worldImages} />}
 
       {activeTab === 'players' && (
         <NarratorPlayerPanel
@@ -224,6 +232,8 @@ export default function HostPage() {
           onSummonCroqueMonsieur={spawnVideo}
         />
       )}
+
+      {activeTab === 'settings' && <NarratorSettings gameId={gameId} worldImages={worldImages} />}
 
       {videoOverlays.map(({ id, style }) => (
         <ActionVideo
