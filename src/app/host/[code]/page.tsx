@@ -10,7 +10,6 @@ import NarratorMaps from '@/components/NarratorMaps';
 import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
 import NarratorPowers from '@/components/NarratorPowers';
 import NarratorSettings from '@/components/NarratorSettings';
-import ActionVideo from '@/components/ActionVideo';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
 import type { Item } from '@/types/game';
@@ -32,9 +31,6 @@ export default function HostPage() {
 
   const [starting, setStarting] = useState(false);
   const [activeTab, setActiveTab] = useState('maps');
-  const [videoOverlays, setVideoOverlays] = useState<
-    { id: string; style: React.CSSProperties }[]
-  >([]);
 
   const handleStartGame = async () => {
     if (!gameId) return;
@@ -52,19 +48,17 @@ export default function HostPage() {
     void supabase.from('action_requests').update({ status: 'resolved' }).eq('id', requestId).then();
   };
 
-  const spawnVideo = () => {
-    const id = Math.random().toString(36).substring(2, 9);
-    const top = Math.floor(Math.random() * 81) + 5; // 5%-85%
-    const left = Math.floor(Math.random() * 81) + 5; // 5%-85%
-    const style: React.CSSProperties = {
-      position: 'fixed',
-      top: `${top}%`,
-      left: `${left}%`,
-      transform: 'translate(-50%, -50%)',
-      zIndex: 9999,
-      pointerEvents: 'none',
-    };
-    setVideoOverlays((prev) => [...prev, { id, style }]);
+  // Narrateur action: incrémente le compteur croque-monsieur du joueur ciblé,
+  // ce qui déclenche la vidéo en plein écran sur son téléphone.
+  const handleSummonCroqueMonsieur = (playerId: string) => {
+    const target = players.find((p) => p.id === playerId);
+    if (!target) return;
+
+    void supabase
+      .from('players')
+      .update({ croque_count: target.croqueCount + 1 })
+      .eq('id', playerId)
+      .then();
   };
 
   // Narrateur action: give an item to a player (collective if they're in Communisme Land)
@@ -229,21 +223,11 @@ export default function HostPage() {
           players={players}
           requests={pendingRequests}
           onResolve={handleResolveRequest}
-          onSummonCroqueMonsieur={spawnVideo}
+          onSummonCroqueMonsieur={handleSummonCroqueMonsieur}
         />
       )}
 
       {activeTab === 'settings' && <NarratorSettings gameId={gameId} worldImages={worldImages} />}
-
-      {videoOverlays.map(({ id, style }) => (
-        <ActionVideo
-          key={id}
-          style={style}
-          onEnded={() => {
-            setVideoOverlays((prev) => prev.filter((v) => v.id !== id));
-          }}
-        />
-      ))}
     </div>
   );
 }

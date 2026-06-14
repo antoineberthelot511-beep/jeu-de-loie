@@ -18,6 +18,7 @@ export type Player = {
   narratorMessage?: string | null;
   posX: number;
   posY: number;
+  croqueCount: number;
 };
 
 export type World = {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -145,6 +145,85 @@ export default function PlayPage() {
     setSendingRequest(false);
   };
 
+  // Vidéo plein écran du croque-monsieur, déclenchée par le narrateur
+  const croqueVideoRef = useRef<HTMLVideoElement | null>(null);
+  const prevCroqueCountRef = useRef<number | null>(null);
+  const audioUnlockedRef = useRef(false);
+  const [showCroqueVideo, setShowCroqueVideo] = useState(false);
+
+  // Détecte une augmentation de croque_count (déclenchement à distance par le narrateur)
+  useEffect(() => {
+    const current = player?.croqueCount;
+    if (current === undefined) return;
+
+    const previous = prevCroqueCountRef.current;
+    prevCroqueCountRef.current = current;
+
+    if (previous !== null && current > previous) {
+      setShowCroqueVideo(true);
+    }
+  }, [player?.croqueCount]);
+
+  // Joue la vidéo avec le son dès qu'elle doit s'afficher
+  useEffect(() => {
+    if (!showCroqueVideo) return;
+    const video = croqueVideoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    video.muted = false;
+    void video.play();
+  }, [showCroqueVideo]);
+
+  // Débloque la lecture avec son sur mobile dès la première interaction du joueur
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current) return;
+      const video = croqueVideoRef.current;
+      if (!video) return;
+
+      audioUnlockedRef.current = true;
+      video.muted = true;
+      video
+        .play()
+        .then(() => {
+          video.pause();
+          video.currentTime = 0;
+          video.muted = false;
+        })
+        .catch(() => {
+          video.muted = false;
+        });
+    };
+
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
+  const croqueVideoOverlay = (
+    <video
+      ref={croqueVideoRef}
+      src="/videos/croque-monsieur.mp4"
+      playsInline
+      onEnded={() => setShowCroqueVideo(false)}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        objectFit: 'cover',
+        zIndex: showCroqueVideo ? 100000 : -1,
+        opacity: showCroqueVideo ? 1 : 0,
+        pointerEvents: showCroqueVideo ? 'auto' : 'none',
+      }}
+    />
+  );
+
   if (loading) {
     return (
       <div className="page-shell page-enter items-center justify-center px-4 py-12">
@@ -224,6 +303,8 @@ export default function PlayPage() {
             En attente que le narrateur démarre la partie…
           </p>
         </div>
+
+        {croqueVideoOverlay}
       </div>
     );
   }
@@ -506,6 +587,8 @@ export default function PlayPage() {
           </div>
         </div>
       )}
+
+      {croqueVideoOverlay}
     </div>
   );
 }

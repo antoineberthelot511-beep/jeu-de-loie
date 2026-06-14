@@ -12,6 +12,7 @@ export type PlayerRow = {
   narrator_message: string | null;
   pos_x: number | null;
   pos_y: number | null;
+  croque_count: number | null;
 };
 
 export function rowToPlayer(row: PlayerRow): Player {
@@ -26,5 +27,6 @@ export function rowToPlayer(row: PlayerRow): Player {
     narratorMessage: row.narrator_message ?? null,
     posX: row.pos_x ?? 50,
     posY: row.pos_y ?? 50,
+    croqueCount: row.croque_count ?? 0,
   };
 }

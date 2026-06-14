@@ -10,7 +10,7 @@ type NarratorPowersProps = {
   players: Player[];
   requests: ActionRequest[];
   onResolve: (requestId: string) => void;
-  onSummonCroqueMonsieur: () => void;
+  onSummonCroqueMonsieur: (playerId: string) => void;
 };
 
 export default function NarratorPowers({
@@ -19,6 +19,7 @@ export default function NarratorPowers({
   onResolve,
   onSummonCroqueMonsieur,
 }: NarratorPowersProps) {
+  const [croquePlayerId, setCroquePlayerId] = useState("");
   const [judgePlayerId, setJudgePlayerId] = useState("");
   const [punishProbability, setPunishProbability] = useState(50);
   const [judgmentMessage, setJudgmentMessage] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export default function NarratorPowers({
     if (!player) return;
 
     if (Math.random() < punishProbability / 100) {
-      onSummonCroqueMonsieur();
+      onSummonCroqueMonsieur(player.id);
       setJudgmentMessage(`Châtiment : ${player.name} a été puni.`);
     } else {
       setJudgmentMessage("L'action passe, pas de châtiment cette fois.");
@@ -43,9 +44,28 @@ export default function NarratorPowers({
       <Reveal delay={60}>
         <div className="bento-card w-full flex flex-col gap-3">
           <h3 className="section-title">Châtiment</h3>
+
+          <div>
+            <label className="field-label">Joueur ciblé</label>
+            <select
+              value={croquePlayerId || players[0]?.id || ""}
+              onChange={(e) => setCroquePlayerId(e.target.value)}
+              className="input-field"
+            >
+              {players.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
-            onClick={onSummonCroqueMonsieur}
+            onClick={() => {
+              const playerId = croquePlayerId || players[0]?.id;
+              if (playerId) onSummonCroqueMonsieur(playerId);
+            }}
             className="btn-pill btn-pill-danger w-full"
           >
             Invoquer le croque-monsieur
