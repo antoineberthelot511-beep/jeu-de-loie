@@ -205,7 +205,7 @@ export default function HostPage() {
         <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </TopBar>
 
-      {activeTab === 'maps' && <NarratorMaps players={players} worldImages={worldImages} />}
+      {activeTab === 'maps' && <NarratorMaps players={players} />}
 
       {activeTab === 'players' && (
         <NarratorPlayerPanel

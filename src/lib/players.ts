@@ -13,6 +13,7 @@ export type PlayerRow = {
   pos_x: number | null;
   pos_y: number | null;
   croque_count: number | null;
+  node_index: number | null;
 };
 
 export function rowToPlayer(row: PlayerRow): Player {
@@ -28,5 +29,6 @@ export function rowToPlayer(row: PlayerRow): Player {
     posX: row.pos_x ?? 50,
     posY: row.pos_y ?? 50,
     croqueCount: row.croque_count ?? 0,
+    nodeIndex: row.node_index ?? 0,
   };
 }

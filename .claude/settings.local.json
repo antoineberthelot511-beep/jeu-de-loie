@@ -46,7 +46,9 @@
       "Bash(cat eslint.config.mjs)",
       "Bash(cat .eslintrc.json)",
       "Bash(cat .eslintrc.js)",
-      "Bash(xargs grep -ln \"is required\")"
+      "Bash(xargs grep -ln \"is required\")",
+      "Bash(ls public/photojeu)",
+      "Bash(ls public *)"
     ]
   }
 }

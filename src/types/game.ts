@@ -19,6 +19,7 @@ export type Player = {
   posX: number;
   posY: number;
   croqueCount: number;
+  nodeIndex: number;
 };
 
 export type World = {

@@ -2,23 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
-import { DESTINATIONS, locationName } from '@/lib/locations';
-import { worlds } from '@/data/worlds';
+import { locationName } from '@/lib/locations';
 import TopBar from '@/components/TopBar';
 import Reveal from '@/components/Reveal';
-import type { Player } from '@/types/game';
-
-const MOVE_STEP = 5;
+import GameBoard from '@/components/GameBoard';
 
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, worldImages, loading: statusLoading, error: statusError } = useGameStatus(code);
+  const { gameId, status, loading: statusLoading, error: statusError } = useGameStatus(code);
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -59,32 +55,6 @@ export default function PlayPage() {
 
   const loading = statusLoading || playerLoading;
   const error = localError ?? statusError;
-
-  const handleSelectMap = (destination: Player['location']) => {
-    if (!playerId || !player || player.location === destination) return;
-    void supabase
-      .from('players')
-      .update({ location: destination, pos_x: 50, pos_y: 50 })
-      .eq('id', playerId)
-      .then();
-  };
-
-  const handleDpadMove = (direction: 'up' | 'down' | 'left' | 'right') => {
-    if (!playerId || !player) return;
-
-    let posX = player.posX;
-    let posY = player.posY;
-
-    if (direction === 'up') posY -= MOVE_STEP;
-    if (direction === 'down') posY += MOVE_STEP;
-    if (direction === 'left') posX -= MOVE_STEP;
-    if (direction === 'right') posX += MOVE_STEP;
-
-    posX = Math.min(100, Math.max(0, posX));
-    posY = Math.min(100, Math.max(0, posY));
-
-    void supabase.from('players').update({ pos_x: posX, pos_y: posY }).eq('id', playerId).then();
-  };
 
   const handleAvatarChange = (file: File | undefined) => {
     if (!file) return;
@@ -312,9 +282,6 @@ export default function PlayPage() {
   }
 
   // status === 'playing'
-  const currentWorld = worlds.find((w) => w.id === player.location);
-  const sceneImage = worldImages[player.location] ?? currentWorld?.sceneImage;
-
   return (
     <div className="page-shell page-enter">
       {/* En-tête fine */}
@@ -336,113 +303,9 @@ export default function PlayPage() {
         </div>
       </div>
 
-      {/* Sélecteur de map */}
-      <div className="px-4 pt-3 sm:px-6 max-w-2xl mx-auto w-full">
-        <div className="map-selector">
-          {DESTINATIONS.map((dest) => (
-            <button
-              key={dest.id}
-              type="button"
-              onClick={() => handleSelectMap(dest.id)}
-              className={`map-selector-item ${player.location === dest.id ? 'is-active' : ''}`}
-            >
-              {dest.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Zone map */}
+      {/* Plateau */}
       <div className="flex-1 px-4 py-3 sm:px-6 max-w-2xl mx-auto w-full flex">
-        <div
-          className="relative w-full flex-1 rounded-[22px] overflow-hidden"
-          style={{ boxShadow: 'var(--shadow-card)', minHeight: '18rem' }}
-        >
-          {sceneImage ? (
-            <Image
-              src={sceneImage}
-              alt={locationName(player.location)}
-              fill
-              sizes="(max-width: 640px) 100vw, 42rem"
-              className="object-cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, var(--bg-card-soft), var(--bg-card))' }}
-            />
-          )}
-
-          <div
-            className="absolute"
-            style={{
-              left: `${player.posX}%`,
-              top: `${player.posY}%`,
-              transform: 'translate(-50%, -50%)',
-              transition: 'left 0.4s var(--ease-apple), top 0.4s var(--ease-apple)',
-            }}
-          >
-            {player.image ? (
-              // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-              <img
-                src={player.image}
-                alt={player.name}
-                className="avatar-circle w-12 h-12"
-                style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.85), var(--shadow-card)' }}
-              />
-            ) : (
-              <span
-                className="avatar-placeholder w-12 h-12"
-                style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
-              >
-                —
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* D-pad */}
-      <div className="flex items-center justify-center py-4">
-        <div className="dpad">
-          <button
-            type="button"
-            onClick={() => handleDpadMove('up')}
-            className="dpad-btn"
-            style={{ gridColumn: 2, gridRow: 1 }}
-            aria-label="Haut"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDpadMove('left')}
-            className="dpad-btn"
-            style={{ gridColumn: 1, gridRow: 2 }}
-            aria-label="Gauche"
-          >
-            ←
-          </button>
-          <div className="dpad-center" style={{ gridColumn: 2, gridRow: 2 }} />
-          <button
-            type="button"
-            onClick={() => handleDpadMove('right')}
-            className="dpad-btn"
-            style={{ gridColumn: 3, gridRow: 2 }}
-            aria-label="Droite"
-          >
-            →
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDpadMove('down')}
-            className="dpad-btn"
-            style={{ gridColumn: 2, gridRow: 3 }}
-            aria-label="Bas"
-          >
-            ↓
-          </button>
-        </div>
+        <GameBoard players={[player]} />
       </div>
 
       {/* Barre de stats */}
