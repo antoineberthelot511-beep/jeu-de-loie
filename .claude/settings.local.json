@@ -45,7 +45,8 @@
       "Bash(rm -f /c/Users/Admin/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/debug-play*.mjs)",
       "Bash(cat eslint.config.mjs)",
       "Bash(cat .eslintrc.json)",
-      "Bash(cat .eslintrc.js)"
+      "Bash(cat .eslintrc.js)",
+      "Bash(xargs grep -ln \"is required\")"
     ]
   }
 }
