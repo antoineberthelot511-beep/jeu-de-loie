@@ -23,10 +23,14 @@ export function useGameStatus(code: string) {
       const { data, error: gameError } = await supabase
         .from("games")
         .select("id, status, world_images")
-        .eq("code", code)
+        .eq("code", code.toUpperCase())
         .maybeSingle();
 
       if (!active) return;
+
+      if (gameError) {
+        console.error("useGameStatus:", gameError.message, gameError.code, gameError.details, gameError.hint);
+      }
 
       if (gameError || !data) {
         setError("Partie introuvable");
