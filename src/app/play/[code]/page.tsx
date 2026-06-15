@@ -7,6 +7,7 @@ import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
 import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
 import { locationName } from '@/lib/locations';
+import { board } from '@/data/board';
 import TopBar from '@/components/TopBar';
 import Reveal from '@/components/Reveal';
 import GameBoard from '@/components/GameBoard';
@@ -41,11 +42,19 @@ export default function PlayPage() {
     void supabase.from('players').update({ combat_action: 'attack' }).eq('id', playerId).then();
   };
 
+  const handleMove = (delta: number) => {
+    if (!playerId || !player) return;
+    const newIndex = Math.min(Math.max(player.nodeIndex + delta, 0), board.length - 1);
+    if (newIndex === player.nodeIndex) return;
+    void supabase.from('players').update({ node_index: newIndex }).eq('id', playerId).then();
+  };
+
   const [requestText, setRequestText] = useState('');
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showShop, setShowShop] = useState(false);
 
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
@@ -295,6 +304,8 @@ export default function PlayPage() {
   }
 
   // status === 'playing'
+  const currentNode = board.find((n) => n.id === player.nodeIndex) ?? board[0];
+
   return (
     <div className="page-shell page-enter">
       {/* En-tête fine */}
@@ -319,6 +330,47 @@ export default function PlayPage() {
       {/* Plateau */}
       <div className="flex-1 px-4 py-3 sm:px-6 max-w-2xl mx-auto w-full flex">
         <GameBoard players={[player]} />
+      </div>
+
+      {/* Case actuelle + déplacement */}
+      <div className="px-4 pb-3 sm:px-6 max-w-2xl mx-auto w-full">
+        <Reveal>
+          <div className="bento-card-soft w-full flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="eyebrow">📍 {currentNode.label}</span>
+              {currentNode.event && <p className="body-text">{currentNode.event}</p>}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleMove(-1)}
+                disabled={player.nodeIndex <= 0}
+                className="btn-pill btn-pill-secondary flex-1"
+              >
+                ◀ Reculer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMove(1)}
+                disabled={player.nodeIndex >= board.length - 1}
+                className="btn-pill btn-pill-primary flex-1"
+              >
+                Avancer ▶
+              </button>
+            </div>
+
+            {currentNode.type === 'epicerie' && (
+              <button
+                type="button"
+                onClick={() => setShowShop(true)}
+                className="btn-pill btn-pill-soft w-full"
+              >
+                🛒 Entrer dans l&apos;épicerie
+              </button>
+            )}
+          </div>
+        </Reveal>
       </div>
 
       {/* Barre de stats */}
@@ -460,6 +512,24 @@ export default function PlayPage() {
             {requestForm}
 
             <button type="button" onClick={() => setShowSettings(false)} className="btn-pill btn-pill-secondary w-full">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Panneau épicerie */}
+      {showShop && (
+        <div className="modal-overlay" onClick={() => setShowShop(false)}>
+          <div
+            className="floating-panel bento-card w-full max-w-md flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="section-title">🛒 Épicerie du village</h2>
+            <p className="body-text">
+              Le marchand prépare son étal... reviens un peu plus tard pour faire tes emplettes !
+            </p>
+            <button type="button" onClick={() => setShowShop(false)} className="btn-pill btn-pill-secondary w-full">
               Fermer
             </button>
           </div>

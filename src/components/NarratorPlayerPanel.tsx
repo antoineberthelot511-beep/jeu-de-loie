@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Item, Player } from "@/types/game";
 import { locationName } from "@/lib/locations";
 import Reveal from "@/components/Reveal";
@@ -31,15 +31,18 @@ export default function NarratorPlayerPanel({
   const [itemMessage, setItemMessage] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [sendConfirmation, setSendConfirmation] = useState<string | null>(null);
-  const [syncedPlayerId, setSyncedPlayerId] = useState<string | undefined>(undefined);
 
   const selected = players.find((p) => p.id === selectedId) ?? players[0];
+  const selectedPlayerId = selected?.id;
+  const selectedNarratorMessage = selected?.narratorMessage;
 
-  if (selected && selected.id !== syncedPlayerId) {
-    setSyncedPlayerId(selected.id);
-    setMessageText(selected.narratorMessage ?? "");
+  // Resynchronise le brouillon de message uniquement quand on change de joueur
+  // (pas à chaque mise à jour temps réel de `players`, pour ne pas écraser la saisie en cours).
+  useEffect(() => {
+    if (!selectedPlayerId) return;
+    setMessageText(selectedNarratorMessage ?? "");
     setSendConfirmation(null);
-  }
+  }, [selectedPlayerId, selectedNarratorMessage]);
 
   const parsedAmount = Number(amount) || 0;
 

@@ -48,7 +48,9 @@
       "Bash(cat .eslintrc.js)",
       "Bash(xargs grep -ln \"is required\")",
       "Bash(ls public/photojeu)",
-      "Bash(ls public *)"
+      "Bash(ls public *)",
+      "Bash(git log *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat \"{}\"')"
     ]
   }
 }
