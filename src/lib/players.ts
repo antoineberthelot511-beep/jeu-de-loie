@@ -16,6 +16,8 @@ export type PlayerRow = {
   node_index: number | null;
   combat_action: string | null;
   in_goulag: boolean | null;
+  roll: number | null;
+  has_moved: boolean | null;
 };
 
 export function rowToPlayer(row: PlayerRow): Player {
@@ -34,5 +36,7 @@ export function rowToPlayer(row: PlayerRow): Player {
     nodeIndex: row.node_index ?? 0,
     combatAction: (row.combat_action as Player["combatAction"]) ?? null,
     inGoulag: row.in_goulag ?? false,
+    roll: row.roll ?? null,
+    hasMoved: row.has_moved ?? false,
   };
 }

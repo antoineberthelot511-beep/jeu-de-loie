@@ -24,6 +24,10 @@ export type Player = {
   nodeIndex: number;
   combatAction: "attack" | null;
   inGoulag: boolean;
+  // Résultat de la Roue du Chaos pour le tour en cours (1-6), null = pas encore lancé.
+  roll: number | null;
+  // Vrai si le joueur a déjà avancé pendant le tour en cours.
+  hasMoved: boolean;
 };
 
 export type Combat = {

@@ -14,6 +14,7 @@ export function useGameStatus(code: string) {
   const [worldImages, setWorldImages] = useState<WorldImages>({});
   const [combat, setCombat] = useState<Combat>(DEFAULT_COMBAT);
   const [shopItems, setShopItems] = useState<Item[]>([]);
+  const [round, setRound] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,7 @@ export function useGameStatus(code: string) {
     const load = async () => {
       const { data, error: gameError } = await supabase
         .from("games")
-        .select("id, status, world_images, combat, shop_items")
+        .select("id, status, world_images, combat, shop_items, round")
         .eq("code", code.toUpperCase())
         .maybeSingle();
 
@@ -46,6 +47,7 @@ export function useGameStatus(code: string) {
       setWorldImages((data.world_images as WorldImages | null) ?? {});
       setCombat((data.combat as Combat | null) ?? DEFAULT_COMBAT);
       setShopItems((data.shop_items as Item[] | null) ?? []);
+      setRound((data.round as number | null) ?? 1);
       setLoading(false);
     };
 
@@ -71,11 +73,13 @@ export function useGameStatus(code: string) {
             world_images: WorldImages | null;
             combat: Combat | null;
             shop_items: Item[] | null;
+            round: number | null;
           };
           setStatus(row.status);
           setWorldImages(row.world_images ?? {});
           setCombat(row.combat ?? DEFAULT_COMBAT);
           setShopItems(row.shop_items ?? []);
+          setRound(row.round ?? 1);
         }
       )
       .subscribe();
@@ -85,5 +89,5 @@ export function useGameStatus(code: string) {
     };
   }, [gameId]);
 
-  return { gameId, status, setStatus, worldImages, combat, shopItems, loading, error };
+  return { gameId, status, setStatus, worldImages, combat, shopItems, round, loading, error };
 }

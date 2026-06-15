@@ -84,6 +84,8 @@ export default function PlayerSetup({ onComplete }: PlayerSetupProps) {
       nodeIndex: 0,
       combatAction: null,
       inGoulag: false,
+      roll: null,
+      hasMoved: false,
     }));
 
     localStorage.setItem("players", JSON.stringify(players));

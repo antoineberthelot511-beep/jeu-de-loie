@@ -14,12 +14,13 @@ import TopBar from '@/components/TopBar';
 import Reveal from '@/components/Reveal';
 import GameBoard from '@/components/GameBoard';
 import PlayerCombat from '@/components/PlayerCombat';
+import ChaosWheel from '@/components/ChaosWheel';
 
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, combat, shopItems, loading: statusLoading, error: statusError } = useGameStatus(code);
+  const { gameId, status, combat, shopItems, round, loading: statusLoading, error: statusError } = useGameStatus(code);
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -44,11 +45,21 @@ export default function PlayPage() {
     void supabase.from('players').update({ combat_action: 'attack' }).eq('id', playerId).then();
   };
 
-  const handleMove = (delta: number) => {
-    if (!playerId || !player) return;
-    const newIndex = Math.min(Math.max(player.nodeIndex + delta, 0), board.length - 1);
-    if (newIndex === player.nodeIndex) return;
-    void supabase.from('players').update({ node_index: newIndex }).eq('id', playerId).then();
+  // Roue du Chaos : enregistre le résultat du lancer pour ce tour.
+  const handleRoll = (value: number) => {
+    if (!playerId) return;
+    void supabase.from('players').update({ roll: value }).eq('id', playerId).then();
+  };
+
+  // Roue du Chaos : avance le joueur de `roll` cases puis marque son tour comme joué.
+  const handleAdvance = () => {
+    if (!playerId || !player || player.roll === null) return;
+    const newIndex = Math.min(player.nodeIndex + player.roll, board.length - 1);
+    void supabase
+      .from('players')
+      .update({ node_index: newIndex, has_moved: true })
+      .eq('id', playerId)
+      .then();
   };
 
   const [requestText, setRequestText] = useState('');
@@ -399,6 +410,13 @@ export default function PlayPage() {
   // status === 'playing'
   const currentNode = board.find((n) => n.id === player.nodeIndex) ?? board[0];
 
+  // Roue du Chaos : classement du tour (roll décroissant, égalité = ordre d'arrivée).
+  const rolledCount = players.filter((p) => p.roll !== null).length;
+  const allRolled = players.length > 0 && rolledCount === players.length;
+  const turnOrder = allRolled ? [...players].sort((a, b) => (b.roll ?? 0) - (a.roll ?? 0)) : [];
+  const currentTurnPlayer = turnOrder.find((p) => !p.hasMoved);
+  const isMyTurn = currentTurnPlayer?.id === player.id;
+
   return (
     <div className="page-shell page-enter">
       {/* En-tête fine */}
@@ -444,25 +462,6 @@ export default function PlayPage() {
               {currentNode.event && <p className="body-text">{currentNode.event}</p>}
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleMove(-1)}
-                disabled={player.nodeIndex <= 0}
-                className="btn-pill btn-pill-secondary flex-1"
-              >
-                ◀ Reculer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMove(1)}
-                disabled={player.nodeIndex >= board.length - 1}
-                className="btn-pill btn-pill-primary flex-1"
-              >
-                Avancer ▶
-              </button>
-            </div>
-
             {currentNode.type === 'epicerie' && (
               <button
                 type="button"
@@ -471,6 +470,50 @@ export default function PlayPage() {
               >
                 🛒 Entrer dans l&apos;épicerie
               </button>
+            )}
+          </div>
+        </Reveal>
+      </div>
+
+      {/* Roue du Chaos : système de tour */}
+      <div className="px-4 pb-3 sm:px-6 max-w-2xl mx-auto w-full">
+        <Reveal delay={40}>
+          <div className="bento-card w-full flex flex-col items-center gap-3 text-center">
+            <div className="flex items-center justify-between w-full">
+              <span className="eyebrow">🎡 Roue du Chaos</span>
+              <span className="badge badge-neutral">Tour {round}</span>
+            </div>
+
+            {player.roll === null ? (
+              <>
+                <p className="body-text">Tourne la roue pour savoir combien de cases tu avanceras !</p>
+                <ChaosWheel value={null} onResult={handleRoll} />
+              </>
+            ) : (
+              <>
+                <ChaosWheel value={player.roll} disabled onResult={() => {}} />
+
+                {!allRolled ? (
+                  <p className="body-text">
+                    Tu as fait <strong>{player.roll}</strong> ! En attente des autres joueurs ({rolledCount}/{players.length})…
+                  </p>
+                ) : player.hasMoved ? (
+                  <p className="body-text">Tu as avancé de {player.roll}. En attente de la fin du tour…</p>
+                ) : isMyTurn ? (
+                  <>
+                    <p className="text-lg font-bold" style={{ color: 'var(--accent)' }}>
+                      C&apos;est ton tour ! Avance de {player.roll} case{player.roll > 1 ? 's' : ''}.
+                    </p>
+                    <button type="button" onClick={handleAdvance} className="btn-pill btn-pill-primary w-full">
+                      Avancer ▶
+                    </button>
+                  </>
+                ) : (
+                  <p className="body-text">
+                    C&apos;est le tour de <strong>{currentTurnPlayer?.name}</strong>…
+                  </p>
+                )}
+              </>
             )}
           </div>
         </Reveal>

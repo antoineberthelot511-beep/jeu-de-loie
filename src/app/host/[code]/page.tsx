@@ -12,6 +12,7 @@ import NarratorPowers from '@/components/NarratorPowers';
 import NarratorSettings from '@/components/NarratorSettings';
 import NarratorShop from '@/components/NarratorShop';
 import NarratorCombat from '@/components/NarratorCombat';
+import NarratorTurnStatus from '@/components/NarratorTurnStatus';
 import TopBar from '@/components/TopBar';
 import TabBar from '@/components/TabBar';
 import type { Combat, Item } from '@/types/game';
@@ -28,7 +29,7 @@ export default function HostPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, setStatus, worldImages, combat, shopItems, loading, error } = useGameStatus(code);
+  const { gameId, status, setStatus, worldImages, combat, shopItems, round, loading, error } = useGameStatus(code);
   const players = useRealtimePlayers(gameId);
   const pendingRequests = useActionRequests(gameId);
 
@@ -211,11 +212,15 @@ export default function HostPage() {
             <button
               type="button"
               onClick={handleStartGame}
-              disabled={starting}
+              disabled={starting || players.length < 2}
               className="btn-pill btn-pill-primary w-full"
             >
               {starting ? '…' : 'Démarrer la partie'}
             </button>
+
+            {players.length < 2 && (
+              <p className="body-text text-center">Il faut au moins 2 joueurs pour commencer</p>
+            )}
           </div>
         </div>
       </div>
@@ -236,6 +241,8 @@ export default function HostPage() {
       >
         <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </TopBar>
+
+      <NarratorTurnStatus gameId={gameId} round={round} players={players} />
 
       {activeTab === 'maps' && <NarratorMaps players={players} />}
 
