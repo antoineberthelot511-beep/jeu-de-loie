@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import type { Item } from '@/types/game';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
 import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
@@ -134,7 +135,7 @@ export default function PlayPage() {
     setSendingRequest(false);
   };
 
-  const handleBuyItem = async (item: any) => {
+  const handleBuyItem = async (item: Item) => {
     if (!playerId || !player) return;
     if (player.money < item.price) {
       setShopMessage('Pas assez de roupies');
@@ -504,7 +505,7 @@ export default function PlayPage() {
                     <img src={editAvatar} alt="Avatar" className="avatar-circle w-20 h-20" />
                   ) : (
                     <span className="avatar-placeholder w-20 h-20">Photo</span>
-                  ))}
+                  )}
                 </label>
                 <input
                   id="profile-avatar-upload"
