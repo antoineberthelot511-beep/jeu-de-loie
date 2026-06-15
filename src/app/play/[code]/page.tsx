@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { useGameStatus } from '@/hooks/useGameStatus';
 import { useRealtimePlayer } from '@/hooks/useRealtimePlayer';
@@ -17,7 +18,7 @@ export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, combat, loading: statusLoading, error: statusError } = useGameStatus(code);
+  const { gameId, status, combat, shopItems, loading: statusLoading, error: statusError } = useGameStatus(code);
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export default function PlayPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [shopMessage, setShopMessage] = useState<string | null>(null);
 
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
@@ -130,6 +132,29 @@ export default function PlayPage() {
     }
 
     setSendingRequest(false);
+  };
+
+  const handleBuyItem = async (item: any) => {
+    if (!playerId || !player) return;
+    if (player.money < item.price) {
+      setShopMessage('Pas assez de roupies');
+      setTimeout(() => setShopMessage(null), 3000);
+      return;
+    }
+    const newMoney = player.money - item.price;
+    const newItem = { ...item, id: crypto.randomUUID() };
+    const newInventory = [...player.inventory, newItem];
+    const { error } = await supabase
+      .from('players')
+      .update({ money: newMoney, inventory: newInventory })
+      .eq('id', playerId);
+    if (error) {
+      setShopMessage('Erreur d achat');
+      setTimeout(() => setShopMessage(null), 3000);
+    } else {
+      setShopMessage(`Achat réussi : ${item.name}`);
+      setTimeout(() => setShopMessage(null), 3000);
+    }
   };
 
   // Vidéo plein écran du croque-monsieur, déclenchée par le narrateur
@@ -479,7 +504,7 @@ export default function PlayPage() {
                     <img src={editAvatar} alt="Avatar" className="avatar-circle w-20 h-20" />
                   ) : (
                     <span className="avatar-placeholder w-20 h-20">Photo</span>
-                  )}
+                  ))}
                 </label>
                 <input
                   id="profile-avatar-upload"
@@ -535,10 +560,56 @@ export default function PlayPage() {
             className="floating-panel bento-card w-full max-w-md flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
           >
+            <Image
+              src="/photojeu/epicerie-interieur.jpg"
+              alt="Intérieur de l'épicerie"
+              className="w-full h-48 object-cover rounded-t-lg"
+            />
             <h2 className="section-title">🛒 Épicerie du village</h2>
-            <p className="body-text">
-              Le marchand prépare son étal... reviens un peu plus tard pour faire tes emplettes !
-            </p>
+            {shopMessage && (
+              <p className={shopMessage.startsWith('error:') ? 'danger-text' : 'success-text'}>
+                {shopMessage}
+              </p>
+            )}
+            <div className="flex flex-col gap-2">
+              {shopItems.map((item) => (
+                <div key={item.id} className="bento-card-soft flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="avatar-placeholder w-10 h-10 rounded-xl flex-shrink-0">—</div>
+                    )}
+                    <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                      <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        {item.name}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--accent)' }}>
+                        {item.price} roupies
+                      </span>
+                      {item.description && (
+                        <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                          {item.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleBuyItem(item)}
+                    disabled={player?.money < item.price}
+                    className="btn-pill btn-pill-primary w-full"
+                  >
+                    Acheter
+                  </button>
+                </div>
+              ))}
+            </div>
             <button type="button" onClick={() => setShowShop(false)} className="btn-pill btn-pill-secondary w-full">
               Fermer
             </button>
