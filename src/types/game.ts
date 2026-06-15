@@ -5,6 +5,8 @@ export type Item = {
   image?: string;
   durability?: number;
   description?: string;
+  // Stock restant dans l'épicerie. `undefined` = stock illimité (compat anciens produits).
+  quantity?: number;
 };
 
 export type Player = {

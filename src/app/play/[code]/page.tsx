@@ -58,6 +58,11 @@ export default function PlayPage() {
   const [showInventory, setShowInventory] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState('');
+  const [newItemImage, setNewItemImage] = useState<string | undefined>(undefined);
+  const [addItemMessage, setAddItemMessage] = useState<string | null>(null);
 
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
@@ -136,12 +141,20 @@ export default function PlayPage() {
   };
 
   const handleBuyItem = async (item: Item) => {
-    if (!playerId || !player) return;
-    if (player.money < item.price) {
-      setShopMessage('Pas assez de roupies');
+    if (!playerId || !player || !gameId) return;
+
+    if (item.quantity === 0) {
+      setShopMessage('error:Article épuisé.');
       setTimeout(() => setShopMessage(null), 3000);
       return;
     }
+
+    if (player.money < item.price) {
+      setShopMessage('error:Pas assez de roupies.');
+      setTimeout(() => setShopMessage(null), 3000);
+      return;
+    }
+
     const newMoney = player.money - item.price;
     const newItem = { ...item, id: crypto.randomUUID() };
     const newInventory = [...player.inventory, newItem];
@@ -149,12 +162,66 @@ export default function PlayPage() {
       .from('players')
       .update({ money: newMoney, inventory: newInventory })
       .eq('id', playerId);
+
     if (error) {
-      setShopMessage('Erreur d achat');
+      setShopMessage('error:Erreur lors de l\'achat.');
       setTimeout(() => setShopMessage(null), 3000);
+      return;
+    }
+
+    if (item.quantity !== undefined) {
+      const newShopItems = shopItems.map((shopItem) =>
+        shopItem.id === item.id ? { ...shopItem, quantity: Math.max(0, shopItem.quantity! - 1) } : shopItem
+      );
+      void supabase.from('games').update({ shop_items: newShopItems }).eq('id', gameId).then();
+    }
+
+    setShopMessage(`ok:Achat réussi : ${item.name}`);
+    setTimeout(() => setShopMessage(null), 3000);
+  };
+
+  const handleNewItemImageChange = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result === 'string') setNewItemImage(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddShopItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gameId) return;
+
+    const trimmedName = newItemName.trim();
+    const parsedPrice = Number(newItemPrice);
+    const parsedQuantity = Number(newItemQuantity);
+
+    if (!trimmedName || !Number.isFinite(parsedPrice) || parsedPrice < 0) return;
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity < 0) return;
+
+    const newShopItem: Item = {
+      id: crypto.randomUUID(),
+      name: trimmedName,
+      price: parsedPrice,
+      quantity: parsedQuantity,
+      image: newItemImage,
+    };
+
+    const { error } = await supabase
+      .from('games')
+      .update({ shop_items: [...shopItems, newShopItem] })
+      .eq('id', gameId);
+
+    if (error) {
+      setAddItemMessage('error:Erreur lors de l\'ajout.');
     } else {
-      setShopMessage(`Achat réussi : ${item.name}`);
-      setTimeout(() => setShopMessage(null), 3000);
+      setAddItemMessage(`ok:${trimmedName} mis en vente.`);
+      setNewItemName('');
+      setNewItemPrice('');
+      setNewItemQuantity('');
+      setNewItemImage(undefined);
     }
   };
 
@@ -593,6 +660,11 @@ export default function PlayPage() {
                       <span className="text-xs" style={{ color: 'var(--accent)' }}>
                         {item.price} roupies
                       </span>
+                      {item.quantity !== undefined && (
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          Stock : {item.quantity}
+                        </span>
+                      )}
                       {item.description && (
                         <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                           {item.description}
@@ -603,14 +675,76 @@ export default function PlayPage() {
                   <button
                     type="button"
                     onClick={() => handleBuyItem(item)}
-                    disabled={player?.money < item.price}
+                    disabled={item.quantity === 0 || player.money < item.price}
                     className="btn-pill btn-pill-primary w-full"
                   >
-                    Acheter
+                    {item.quantity === 0 ? 'Épuisé' : 'Acheter'}
                   </button>
                 </div>
               ))}
             </div>
+
+            <hr className="divider" />
+
+            <h2 className="section-title">Vendre un article</h2>
+            <form onSubmit={handleAddShopItem} className="flex flex-col gap-2">
+              <div>
+                <label className="field-label">Nom</label>
+                <input
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  placeholder="Ex: Vieux chapeau"
+                  className="input-field"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="field-label">Prix</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newItemPrice}
+                    onChange={(e) => setNewItemPrice(e.target.value)}
+                    placeholder="0"
+                    className="input-field"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="field-label">Quantité</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newItemQuantity}
+                    onChange={(e) => setNewItemQuantity(e.target.value)}
+                    placeholder="1"
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="field-label">Photo (optionnel)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleNewItemImageChange(e.target.files?.[0])}
+                  className="file-field"
+                />
+              </div>
+
+              <button type="submit" className="btn-pill btn-pill-soft w-full">
+                Mettre en vente
+              </button>
+
+              {addItemMessage && (
+                <p className={addItemMessage.startsWith('error:') ? 'danger-text' : 'success-text'}>
+                  {addItemMessage.replace(/^(error|ok):/, '')}
+                </p>
+              )}
+            </form>
+
             <button type="button" onClick={() => setShowShop(false)} className="btn-pill btn-pill-secondary w-full">
               Fermer
             </button>
