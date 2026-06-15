@@ -245,6 +245,7 @@ export default function HostPage() {
           onAdjustMoney={handleAdjustMoney}
           onAdjustLife={handleAdjustLife}
           onSendMessage={handleSendMessage}
+          onSummonCroqueMonsieur={handleSummonCroqueMonsieur}
         />
       )}
 

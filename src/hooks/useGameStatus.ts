@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_COMBAT, type Combat } from "@/types/game";
+import { DEFAULT_COMBAT, type Combat, type Item } from "@/types/game";
 
 export type GameStatus = "lobby" | "playing";
 
@@ -13,6 +13,7 @@ export function useGameStatus(code: string) {
   const [status, setStatus] = useState<GameStatus | null>(null);
   const [worldImages, setWorldImages] = useState<WorldImages>({});
   const [combat, setCombat] = useState<Combat>(DEFAULT_COMBAT);
+  const [shopItems, setShopItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +25,7 @@ export function useGameStatus(code: string) {
     const load = async () => {
       const { data, error: gameError } = await supabase
         .from("games")
-        .select("id, status, world_images, combat")
+        .select("id, status, world_images, combat, shop_items")
         .eq("code", code.toUpperCase())
         .maybeSingle();
 
@@ -44,6 +45,7 @@ export function useGameStatus(code: string) {
       setStatus(data.status as GameStatus);
       setWorldImages((data.world_images as WorldImages | null) ?? {});
       setCombat((data.combat as Combat | null) ?? DEFAULT_COMBAT);
+      setShopItems((data.shop_items as Item[] | null) ?? []);
       setLoading(false);
     };
 
@@ -54,7 +56,7 @@ export function useGameStatus(code: string) {
     };
   }, [code]);
 
-  // Realtime: react to the game's status, world images or combat state changing
+  // Realtime: react to the game's status, world images, combat or shop catalog changing
   useEffect(() => {
     if (!gameId) return;
 
@@ -64,10 +66,16 @@ export function useGameStatus(code: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
         (payload) => {
-          const row = payload.new as { status: GameStatus; world_images: WorldImages | null; combat: Combat | null };
+          const row = payload.new as {
+            status: GameStatus;
+            world_images: WorldImages | null;
+            combat: Combat | null;
+            shop_items: Item[] | null;
+          };
           setStatus(row.status);
           setWorldImages(row.world_images ?? {});
           setCombat(row.combat ?? DEFAULT_COMBAT);
+          setShopItems(row.shop_items ?? []);
         }
       )
       .subscribe();
@@ -77,5 +85,5 @@ export function useGameStatus(code: string) {
     };
   }, [gameId]);
 
-  return { gameId, status, setStatus, worldImages, combat, loading, error };
+  return { gameId, status, setStatus, worldImages, combat, shopItems, loading, error };
 }

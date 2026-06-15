@@ -12,6 +12,7 @@ type NarratorPlayerPanelProps = {
   onAdjustMoney: (playerId: string, amount: number) => void;
   onAdjustLife: (playerId: string, amount: number) => void;
   onSendMessage: (playerId: string, message: string) => void;
+  onSummonCroqueMonsieur: (playerId: string) => void;
 };
 
 export default function NarratorPlayerPanel({
@@ -21,6 +22,7 @@ export default function NarratorPlayerPanel({
   onAdjustMoney,
   onAdjustLife,
   onSendMessage,
+  onSummonCroqueMonsieur,
 }: NarratorPlayerPanelProps) {
   const [selectedId, setSelectedId] = useState("");
   const [amount, setAmount] = useState("10");
@@ -140,6 +142,14 @@ export default function NarratorPlayerPanel({
               <span className="badge badge-neutral">{selected.life} vie</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => onSummonCroqueMonsieur(selected.id)}
+            className="btn-pill btn-pill-danger w-full"
+          >
+            Invoquer le croque-monsieur
+          </button>
         </div>
       </Reveal>
 

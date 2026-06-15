@@ -323,7 +323,17 @@ export default function PlayPage() {
           <span className="section-title truncate" style={{ flex: 1, textAlign: 'center' }}>
             {locationName(player.location)}
           </span>
-          <div style={{ width: '2.75rem', flexShrink: 0 }} aria-hidden="true" />
+          <div className="flex items-center gap-2 min-w-0" style={{ flexShrink: 0, maxWidth: '40%' }}>
+            {player.image ? (
+              // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+              <img src={player.image} alt={player.name} className="avatar-circle w-9 h-9 flex-shrink-0" />
+            ) : (
+              <span className="avatar-placeholder w-9 h-9 flex-shrink-0">—</span>
+            )}
+            <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+              {player.name}
+            </span>
+          </div>
         </div>
       </div>
 
