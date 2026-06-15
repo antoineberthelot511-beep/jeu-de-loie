@@ -51,10 +51,11 @@ export default function PlayPage() {
     void supabase.from('players').update({ roll: value }).eq('id', playerId).then();
   };
 
-  // Roue du Chaos : avance le joueur de `roll` cases puis marque son tour comme joué.
+  // Roue du Chaos : le roll ne sert qu'à déterminer l'ordre de jeu.
+  // À son tour, le joueur avance toujours d'une seule case, puis marque son tour comme joué.
   const handleAdvance = () => {
     if (!playerId || !player || player.roll === null) return;
-    const newIndex = Math.min(player.nodeIndex + player.roll, board.length - 1);
+    const newIndex = Math.min(player.nodeIndex + 1, board.length - 1);
     void supabase
       .from('players')
       .update({ node_index: newIndex, has_moved: true })
@@ -187,6 +188,9 @@ export default function PlayPage() {
       void supabase.from('games').update({ shop_items: newShopItems }).eq('id', gameId).then();
     }
 
+    const audio = new Audio('/sons/apple-pay.mp3');
+    void audio.play().catch(() => {});
+
     setShopMessage(`ok:Achat réussi : ${item.name}`);
     setTimeout(() => setShopMessage(null), 3000);
   };
@@ -242,6 +246,10 @@ export default function PlayPage() {
   const audioUnlockedRef = useRef(false);
   const [showCroqueVideo, setShowCroqueVideo] = useState(false);
 
+  // Roue du Chaos : son "ahh" sur le téléphone des joueurs qui n'ont pas le meilleur roll du tour.
+  const ahhAudioRef = useRef<HTMLAudioElement | null>(null);
+  const lastAhhRoundRef = useRef<number | null>(null);
+
   // Détecte une augmentation de croque_count (déclenchement à distance par le narrateur)
   useEffect(() => {
     const current = player?.croqueCount;
@@ -254,6 +262,29 @@ export default function PlayPage() {
       setShowCroqueVideo(true);
     }
   }, [player?.croqueCount]);
+
+  // Roue du Chaos : dès que tout le monde a tourné la roue, les joueurs qui n'ont
+  // pas le meilleur roll entendent un petit "ahh" de déception (déclenché à distance).
+  useEffect(() => {
+    if (!player || player.roll === null) return;
+
+    const rolledCount = players.filter((p) => p.roll !== null).length;
+    const allRolled = players.length > 0 && rolledCount === players.length;
+    if (!allRolled) return;
+
+    if (lastAhhRoundRef.current === round) return;
+    lastAhhRoundRef.current = round;
+
+    const maxRoll = Math.max(...players.map((p) => p.roll ?? 0));
+    if (player.roll < maxRoll) {
+      const audio = ahhAudioRef.current;
+      if (audio) {
+        audio.currentTime = 0;
+        audio.muted = false;
+        void audio.play().catch(() => {});
+      }
+    }
+  }, [players, player, round]);
 
   // Joue la vidéo avec le son dès qu'elle doit s'afficher
   useEffect(() => {
@@ -272,20 +303,38 @@ export default function PlayPage() {
     const unlockAudio = () => {
       if (audioUnlockedRef.current) return;
       const video = croqueVideoRef.current;
-      if (!video) return;
+      const ahh = ahhAudioRef.current;
+      if (!video && !ahh) return;
 
       audioUnlockedRef.current = true;
-      video.muted = true;
-      video
-        .play()
-        .then(() => {
-          video.pause();
-          video.currentTime = 0;
-          video.muted = false;
-        })
-        .catch(() => {
-          video.muted = false;
-        });
+
+      if (video) {
+        video.muted = true;
+        video
+          .play()
+          .then(() => {
+            video.pause();
+            video.currentTime = 0;
+            video.muted = false;
+          })
+          .catch(() => {
+            video.muted = false;
+          });
+      }
+
+      if (ahh) {
+        ahh.muted = true;
+        ahh
+          .play()
+          .then(() => {
+            ahh.pause();
+            ahh.currentTime = 0;
+            ahh.muted = false;
+          })
+          .catch(() => {
+            ahh.muted = false;
+          });
+      }
     };
 
     window.addEventListener('pointerdown', unlockAudio);
@@ -298,23 +347,26 @@ export default function PlayPage() {
   }, []);
 
   const croqueVideoOverlay = (
-    <video
-      ref={croqueVideoRef}
-      src="/videos/croque-monsieur.mp4"
-      preload="auto"
-      playsInline
-      onEnded={() => setShowCroqueVideo(false)}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        objectFit: 'cover',
-        zIndex: showCroqueVideo ? 100000 : -1,
-        opacity: showCroqueVideo ? 1 : 0,
-        pointerEvents: showCroqueVideo ? 'auto' : 'none',
-      }}
-    />
+    <>
+      <video
+        ref={croqueVideoRef}
+        src="/videos/croque-monsieur.mp4"
+        preload="auto"
+        playsInline
+        onEnded={() => setShowCroqueVideo(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: showCroqueVideo ? 100000 : -1,
+          opacity: showCroqueVideo ? 1 : 0,
+          pointerEvents: showCroqueVideo ? 'auto' : 'none',
+        }}
+      />
+      <audio ref={ahhAudioRef} src="/sons/ahh.mp3" preload="auto" />
+    </>
   );
 
   if (loading) {
@@ -486,7 +538,7 @@ export default function PlayPage() {
 
             {player.roll === null ? (
               <>
-                <p className="body-text">Tourne la roue pour savoir combien de cases tu avanceras !</p>
+                <p className="body-text">Tourne la roue pour déterminer l&apos;ordre de jeu : le plus haut score joue en premier !</p>
                 <ChaosWheel value={null} onResult={handleRoll} />
               </>
             ) : (
@@ -498,11 +550,11 @@ export default function PlayPage() {
                     Tu as fait <strong>{player.roll}</strong> ! En attente des autres joueurs ({rolledCount}/{players.length})…
                   </p>
                 ) : player.hasMoved ? (
-                  <p className="body-text">Tu as avancé de {player.roll}. En attente de la fin du tour…</p>
+                  <p className="body-text">Tu as avancé d&apos;une case. En attente de la fin du tour…</p>
                 ) : isMyTurn ? (
                   <>
                     <p className="text-lg font-bold" style={{ color: 'var(--accent)' }}>
-                      C&apos;est ton tour ! Avance de {player.roll} case{player.roll > 1 ? 's' : ''}.
+                      C&apos;est ton tour ! Avance d&apos;une case.
                     </p>
                     <button type="button" onClick={handleAdvance} className="btn-pill btn-pill-primary w-full">
                       Avancer ▶

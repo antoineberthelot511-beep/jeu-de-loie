@@ -50,7 +50,10 @@
       "Bash(ls public/photojeu)",
       "Bash(ls public *)",
       "Bash(git log *)",
-      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat \"{}\"')"
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat \"{}\"')",
+      "Bash(find public *)",
+      "Bash(ls public/sons)",
+      "Bash(ls public/sound)"
     ]
   }
 }

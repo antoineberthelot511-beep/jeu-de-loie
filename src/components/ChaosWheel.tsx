@@ -40,7 +40,7 @@ export default function ChaosWheel({ value, disabled, onResult }: ChaosWheelProp
     setSpinning(true);
     setRotation((prev) => prev + extraSpins * 360 + delta);
 
-    const audio = new Audio("/sound/applepay.mp3");
+    const audio = new Audio("/sons/wheel.mp3");
     void audio.play().catch(() => {});
 
     onResult(result);
