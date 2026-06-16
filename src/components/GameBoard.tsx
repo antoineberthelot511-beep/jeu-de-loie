@@ -6,6 +6,7 @@ import { board } from "@/data/board";
 
 type GameBoardProps = {
   players: Player[];
+  currentPlayerId?: string;
 };
 
 const NODE_STYLES: Record<string, { background: string; color: string }> = {
@@ -15,7 +16,7 @@ const NODE_STYLES: Record<string, { background: string; color: string }> = {
   event: { background: "var(--secondary-soft)", color: "var(--text-primary)" },
 };
 
-export default function GameBoard({ players }: GameBoardProps) {
+export default function GameBoard({ players, currentPlayerId }: GameBoardProps) {
   const pathPoints = board.map((node) => `${node.x},${node.y}`).join(" ");
 
   return (
@@ -107,6 +108,7 @@ export default function GameBoard({ players }: GameBoardProps) {
         const sameNode = players.filter((p) => p.nodeIndex === player.nodeIndex);
         const indexHere = sameNode.findIndex((p) => p.id === player.id);
         const offset = (indexHere - (sameNode.length - 1) / 2) * 8;
+        const isMe = player.id === currentPlayerId;
 
         return (
           <div
@@ -115,17 +117,36 @@ export default function GameBoard({ players }: GameBoardProps) {
             style={{
               left: `${node.x}%`,
               top: `${node.y}%`,
-              transform: `translate(calc(-50% + ${offset}px), calc(-50% - 1.6rem))`,
+              transform: `translate(calc(-50% + ${offset}px), calc(-50% - 1.9rem))`,
               transition: "left 0.4s var(--ease-apple), top 0.4s var(--ease-apple)",
-              zIndex: 10,
+              zIndex: isMe ? 20 : 10,
             }}
           >
             {player.image ? (
               // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-              <img src={player.image} alt={player.name} className="avatar-circle w-8 h-8" />
+              <img
+                src={player.image}
+                alt={player.name}
+                className={`avatar-circle w-8 h-8${isMe ? " avatar-circle-me" : ""}`}
+              />
             ) : (
-              <span className="avatar-placeholder w-8 h-8">—</span>
+              <span className={`avatar-placeholder w-8 h-8${isMe ? " avatar-circle-me" : ""}`}>—</span>
             )}
+            <span
+              style={{
+                fontSize: "0.55rem",
+                fontWeight: 700,
+                lineHeight: 1,
+                maxWidth: "3.5rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                color: isMe ? "#ffd23f" : "var(--text-primary)",
+                textShadow: "0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.5)",
+              }}
+            >
+              {isMe ? "toi" : player.name}
+            </span>
           </div>
         );
       })}

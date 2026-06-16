@@ -479,6 +479,11 @@ input[type="range"] {
   box-shadow: 3px 3px 0 var(--ink);
 }
 
+.avatar-circle-me {
+  outline-color: #ffd23f;
+  box-shadow: 0 0 0 2px #ffd23f, 3px 3px 0 var(--ink);
+}
+
 .avatar-placeholder {
   display: flex;
   align-items: center;

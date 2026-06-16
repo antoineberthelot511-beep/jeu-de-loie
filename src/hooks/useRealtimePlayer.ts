@@ -40,7 +40,9 @@ export function useRealtimePlayer(playerId: string | null) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "players", filter: `id=eq.${playerId}` },
         (payload) => {
-          setPlayer(rowToPlayer(payload.new as PlayerRow));
+          const row = payload.new as PlayerRow;
+          console.log('[realtime] player update — croque_count:', row.croque_count, '| id:', row.id);
+          setPlayer(rowToPlayer(row));
         }
       )
       .subscribe();

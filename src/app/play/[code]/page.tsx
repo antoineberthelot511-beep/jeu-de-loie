@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import type { Item } from '@/types/game';
@@ -19,6 +19,7 @@ import ChaosWheel from '@/components/ChaosWheel';
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
+  const router = useRouter();
 
   const { gameId, status, combat, shopItems, round, loading: statusLoading, error: statusError } = useGameStatus(code);
 
@@ -80,6 +81,8 @@ export default function PlayPage() {
   const [editAvatar, setEditAvatar] = useState<string | undefined>(undefined);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leavingGame, setLeavingGame] = useState(false);
 
   const handleOpenSettings = () => {
     if (player) {
@@ -87,7 +90,17 @@ export default function PlayPage() {
       setEditAvatar(player.image || undefined);
     }
     setProfileMessage(null);
+    setConfirmLeave(false);
     setShowSettings(true);
+  };
+
+  const handleLeaveGame = async () => {
+    if (!playerId || leavingGame) return;
+    setLeavingGame(true);
+    await supabase.from('players').delete().eq('id', playerId);
+    localStorage.removeItem('gameId');
+    localStorage.removeItem('playerId');
+    router.push('/');
   };
 
   const loading = statusLoading || playerLoading;
@@ -250,18 +263,23 @@ export default function PlayPage() {
   const ahhAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastAhhRoundRef = useRef<number | null>(null);
 
-  // Détecte une augmentation de croque_count (déclenchement à distance par le narrateur)
+  // Détecte une augmentation de croque_count (déclenchement à distance par le narrateur).
+  // Dépend de [player] (et non de player?.croqueCount) pour réagir à chaque update Supabase
+  // même si croqueCount n'est pas la seule valeur qui change dans le payload.
   useEffect(() => {
-    const current = player?.croqueCount;
-    if (current === undefined) return;
-
+    if (!player) return;
+    const current = player.croqueCount;
     const previous = prevCroqueCountRef.current;
+
+    console.log('[croque] player update — croque_count:', current, '| previous ref:', previous);
+
     prevCroqueCountRef.current = current;
 
     if (previous !== null && current > previous) {
+      console.log('[croque] → TRIGGER vidéo (', previous, '→', current, ')');
       setShowCroqueVideo(true);
     }
-  }, [player?.croqueCount]);
+  }, [player]);
 
   // Roue du Chaos : dès que tout le monde a tourné la roue, les joueurs qui n'ont
   // pas le meilleur roll entendent un petit "ahh" de déception (déclenché à distance).
@@ -292,49 +310,52 @@ export default function PlayPage() {
     const video = croqueVideoRef.current;
     if (!video) return;
 
+    console.log('[croque] tentative play vidéo, muted:', video.muted);
     video.currentTime = 0;
     video.muted = false;
     video.volume = 1;
-    void video.play();
+    video.play().catch((e) => console.error('[croque] play() échoué:', e));
   }, [showCroqueVideo]);
 
-  // Débloque la lecture avec son sur mobile dès la première interaction du joueur
+  // Débloque la lecture avec son sur mobile dès la première interaction du joueur.
+  // On marque audioUnlockedRef seulement quand la vidéo ET l'audio sont tous deux prêts,
+  // pour éviter de verrouiller le flag avant que les éléments soient montés.
   useEffect(() => {
     const unlockAudio = () => {
       if (audioUnlockedRef.current) return;
+
       const video = croqueVideoRef.current;
       const ahh = ahhAudioRef.current;
-      if (!video && !ahh) return;
+
+      // Attend que les éléments soient dans le DOM (possible si le joueur tape très tôt)
+      if (!video || !ahh) return;
 
       audioUnlockedRef.current = true;
+      console.log('[audio] déverrouillage audio au premier tap');
 
-      if (video) {
-        video.muted = true;
-        video
-          .play()
-          .then(() => {
-            video.pause();
-            video.currentTime = 0;
-            video.muted = false;
-          })
-          .catch(() => {
-            video.muted = false;
-          });
-      }
+      video.muted = true;
+      video
+        .play()
+        .then(() => {
+          video.pause();
+          video.currentTime = 0;
+          video.muted = false;
+        })
+        .catch(() => {
+          video.muted = false;
+        });
 
-      if (ahh) {
-        ahh.muted = true;
-        ahh
-          .play()
-          .then(() => {
-            ahh.pause();
-            ahh.currentTime = 0;
-            ahh.muted = false;
-          })
-          .catch(() => {
-            ahh.muted = false;
-          });
-      }
+      ahh.muted = true;
+      ahh
+        .play()
+        .then(() => {
+          ahh.pause();
+          ahh.currentTime = 0;
+          ahh.muted = false;
+        })
+        .catch(() => {
+          ahh.muted = false;
+        });
     };
 
     window.addEventListener('pointerdown', unlockAudio);
@@ -502,7 +523,7 @@ export default function PlayPage() {
 
       {/* Plateau */}
       <div className="flex-1 px-4 py-3 sm:px-6 max-w-2xl mx-auto w-full flex">
-        <GameBoard players={[player]} />
+        <GameBoard players={players} currentPlayerId={player.id} />
       </div>
 
       {/* Case actuelle + déplacement */}
@@ -708,6 +729,55 @@ export default function PlayPage() {
 
             <h2 className="section-title">Demander au narrateur</h2>
             {requestForm}
+
+            <hr className="divider" />
+
+            {!confirmLeave ? (
+              <button
+                type="button"
+                onClick={() => setConfirmLeave(true)}
+                className="btn-pill btn-pill-danger w-full"
+              >
+                🚪 Quitter la partie
+              </button>
+            ) : (
+              <div
+                className="flex flex-col gap-3 rounded-2xl p-4"
+                style={{
+                  background: 'var(--danger-soft)',
+                  border: '3px solid var(--danger)',
+                  boxShadow: '4px 4px 0 var(--danger)',
+                }}
+              >
+                <p
+                  className="text-center font-bold text-base"
+                  style={{ color: 'var(--danger)', fontFamily: 'var(--font-display)' }}
+                >
+                  Quitter la partie ?
+                </p>
+                <p className="body-text text-center text-sm">
+                  Tu seras supprimé de la partie. Cette action est irréversible.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmLeave(false)}
+                    disabled={leavingGame}
+                    className="btn-pill btn-pill-secondary flex-1"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLeaveGame}
+                    disabled={leavingGame}
+                    className="btn-pill btn-pill-danger flex-1"
+                  >
+                    {leavingGame ? 'Départ…' : 'Oui, quitter'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button type="button" onClick={() => setShowSettings(false)} className="btn-pill btn-pill-secondary w-full">
               Fermer

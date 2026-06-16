@@ -34,7 +34,7 @@ export default function ChaosWheel({ value, disabled, onResult }: ChaosWheelProp
 
     const result = 1 + Math.floor(Math.random() * 6);
     const target = angleForValue(result);
-    const extraSpins = 4 + Math.floor(Math.random() * 2); // 4-5 tours complets
+    const extraSpins = 10 + Math.floor(Math.random() * 3); // 10-12 tours pour 11 s
     const delta = ((target - (rotation % 360)) + 360) % 360;
 
     setSpinning(true);
@@ -43,9 +43,11 @@ export default function ChaosWheel({ value, disabled, onResult }: ChaosWheelProp
     const audio = new Audio("/sons/wheel.mp3");
     void audio.play().catch(() => {});
 
-    onResult(result);
-
-    window.setTimeout(() => setSpinning(false), 2600);
+    // onResult appelé APRÈS la fin de l'animation pour ne pas spoiler le résultat
+    window.setTimeout(() => {
+      setSpinning(false);
+      onResult(result);
+    }, 11000);
   };
 
   return (
@@ -57,7 +59,8 @@ export default function ChaosWheel({ value, disabled, onResult }: ChaosWheelProp
         style={{
           background: WHEEL_BACKGROUND,
           transform: `rotate(${rotation}deg)`,
-          transitionDuration: spinning ? "2.4s" : "0s",
+          transitionDuration: spinning ? "11s" : "0s",
+          transitionTimingFunction: "cubic-bezier(0.05, 0.0, 0.0, 1.0)",
         }}
       >
         {SEGMENTS.map((n, i) => (
