@@ -7,6 +7,8 @@ export type Item = {
   description?: string;
   // Stock restant dans l'épicerie. `undefined` = stock illimité (compat anciens produits).
   quantity?: number;
+  // Joueur qui a mis l'article en vente. Absent = ajouté par le narrateur (pas de commission).
+  seller_id?: string;
 };
 
 export type Player = {

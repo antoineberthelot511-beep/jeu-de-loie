@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Item } from "@/types/game";
 import Reveal from "@/components/Reveal";
+import PollinationsGenerator from "@/components/PollinationsGenerator";
 
 type NarratorShopProps = {
   gameId: string | null;
@@ -175,6 +176,14 @@ export default function NarratorShop({ gameId, shopItems }: NarratorShopProps) {
 
             <div>
               <label className="field-label">Image (optionnel)</label>
+              {image && (
+                // eslint-disable-next-line @next/next/no-img-element -- base64 or external URL
+                <img
+                  src={image}
+                  alt="Aperçu"
+                  className="w-16 h-16 object-cover rounded-2xl mb-2"
+                />
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -184,6 +193,7 @@ export default function NarratorShop({ gameId, shopItems }: NarratorShopProps) {
                 }}
                 className="file-field"
               />
+              <PollinationsGenerator onImageGenerated={(url) => setImage(url)} />
             </div>
 
             <div>
@@ -258,7 +268,7 @@ export default function NarratorShop({ gameId, shopItems }: NarratorShopProps) {
                     <div>
                       <label className="field-label">Image (optionnel)</label>
                       {editImage && (
-                        // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
+                        // eslint-disable-next-line @next/next/no-img-element -- base64 or external URL
                         <img
                           src={editImage}
                           alt={editName}
@@ -274,6 +284,7 @@ export default function NarratorShop({ gameId, shopItems }: NarratorShopProps) {
                         }}
                         className="file-field"
                       />
+                      <PollinationsGenerator onImageGenerated={(url) => setEditImage(url)} />
                     </div>
 
                     <div>

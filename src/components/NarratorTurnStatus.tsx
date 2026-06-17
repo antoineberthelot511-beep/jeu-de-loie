@@ -11,20 +11,35 @@ type NarratorTurnStatusProps = {
   players: Player[];
 };
 
-// Affichage + autorité de la "Roue du Chaos" : classement du tour, joueur
-// actif, et déclenchement du tour suivant quand tout le monde a bougé.
+// Tri déterministe : roll décroissant, départage par id (stable sur tous les clients).
+function sortByRoll(ps: Player[]): Player[] {
+  return [...ps].sort((a, b) => {
+    const diff = (b.roll ?? 0) - (a.roll ?? 0);
+    return diff !== 0 ? diff : a.id < b.id ? -1 : 1;
+  });
+}
+
 export default function NarratorTurnStatus({ gameId, round, players }: NarratorTurnStatusProps) {
   const resetTriggeredRef = useRef(false);
+
+  // Refs pour lire les valeurs fraîches depuis l'effet sans les lister en dépendances
+  // (évite de re-déclencher l'effet sur chaque update realtime de players/round).
+  const playersRef = useRef(players);
+  playersRef.current = players;
+  const roundRef = useRef(round);
+  roundRef.current = round;
 
   const rolledCount = players.filter((p) => p.roll !== null).length;
   const allRolled = players.length > 0 && rolledCount === players.length;
   const allMoved = players.length > 0 && players.every((p) => p.hasMoved);
-  const ranking = allRolled ? [...players].sort((a, b) => (b.roll ?? 0) - (a.roll ?? 0)) : [];
+  const ranking = allRolled ? sortByRoll(players) : [];
   const currentTurnPlayer = ranking.find((p) => !p.hasMoved);
 
   // Quand tout le monde a bougé : nouveau tour (reset roll/has_moved, round + 1).
+  // Dépend uniquement de allMoved (booléen) et gameId (string) — pas du tableau players
+  // qui changerait à chaque event realtime et causerait des re-runs en cascade.
   useEffect(() => {
-    if (!gameId || players.length === 0) return;
+    if (!gameId) return;
 
     if (!allMoved) {
       resetTriggeredRef.current = false;
@@ -34,11 +49,13 @@ export default function NarratorTurnStatus({ gameId, round, players }: NarratorT
     if (resetTriggeredRef.current) return;
     resetTriggeredRef.current = true;
 
-    players.forEach((p) => {
+    const ps = playersRef.current;
+    const r = roundRef.current;
+    ps.forEach((p) => {
       void supabase.from("players").update({ roll: null, has_moved: false }).eq("id", p.id).then();
     });
-    void supabase.from("games").update({ round: round + 1 }).eq("id", gameId).then();
-  }, [allMoved, gameId, players, round]);
+    void supabase.from("games").update({ round: r + 1 }).eq("id", gameId).then();
+  }, [allMoved, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (players.length === 0) return null;
 

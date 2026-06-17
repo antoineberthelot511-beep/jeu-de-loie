@@ -9,7 +9,6 @@ import { useActionRequests } from '@/hooks/useActionRequests';
 import NarratorMaps from '@/components/NarratorMaps';
 import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
 import NarratorPowers from '@/components/NarratorPowers';
-import NarratorSettings from '@/components/NarratorSettings';
 import NarratorShop from '@/components/NarratorShop';
 import NarratorCombat from '@/components/NarratorCombat';
 import NarratorTurnStatus from '@/components/NarratorTurnStatus';
@@ -22,14 +21,13 @@ const TABS = [
   { id: 'players', label: 'Joueurs' },
   { id: 'narrator', label: 'Narrateur' },
   { id: 'shop', label: 'Épicerie' },
-  { id: 'settings', label: 'Réglages' },
 ];
 
 export default function HostPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { gameId, status, setStatus, worldImages, combat, shopItems, round, loading, error } = useGameStatus(code);
+  const { gameId, status, setStatus, combat, shopItems, round, loading, error } = useGameStatus(code);
   const players = useRealtimePlayers(gameId);
   const pendingRequests = useActionRequests(gameId);
 
@@ -110,7 +108,9 @@ export default function HostPage() {
       .from('players')
       .update({ money: Math.max(0, target.money + amount) })
       .eq('id', playerId)
-      .then();
+      .then(({ error }) => {
+        if (error) console.error('handleAdjustMoney:', error);
+      });
   };
 
   const handleAdjustLife = (playerId: string, amount: number) => {
@@ -121,7 +121,9 @@ export default function HostPage() {
       .from('players')
       .update({ life: Math.max(0, target.life + amount) })
       .eq('id', playerId)
-      .then();
+      .then(({ error }) => {
+        if (error) console.error('handleAdjustLife:', error);
+      });
   };
 
   const handleSendMessage = (playerId: string, message: string) => {
@@ -269,8 +271,6 @@ export default function HostPage() {
       )}
 
       {activeTab === 'shop' && <NarratorShop gameId={gameId} shopItems={shopItems} />}
-
-      {activeTab === 'settings' && <NarratorSettings gameId={gameId} worldImages={worldImages} />}
     </div>
   );
 }

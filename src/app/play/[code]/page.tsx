@@ -70,6 +70,7 @@ export default function PlayPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const shopAudioRef = useRef<HTMLAudioElement | null>(null);
   const [shopMessage, setShopMessage] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
@@ -165,6 +166,22 @@ export default function PlayPage() {
     setSendingRequest(false);
   };
 
+  const openShop = () => {
+    const audio = new Audio('/sons/indian-song.mp3');
+    audio.loop = true;
+    void audio.play().catch(() => {});
+    shopAudioRef.current = audio;
+    setShowShop(true);
+  };
+
+  const closeShop = () => {
+    if (shopAudioRef.current) {
+      shopAudioRef.current.pause();
+      shopAudioRef.current = null;
+    }
+    setShowShop(false);
+  };
+
   const handleBuyItem = async (item: Item) => {
     if (!playerId || !player || !gameId) return;
 
@@ -201,6 +218,26 @@ export default function PlayPage() {
       void supabase.from('games').update({ shop_items: newShopItems }).eq('id', gameId).then();
     }
 
+    // Commission du vendeur : entre 30 % et 100 % du prix, versée au vendeur original.
+    if (item.seller_id) {
+      void (async () => {
+        const { data: sellerRow } = await supabase
+          .from('players')
+          .select('money')
+          .eq('id', item.seller_id!)
+          .maybeSingle();
+        if (sellerRow) {
+          const pct = 0.3 + Math.random() * 0.7;
+          const commission = Math.round(item.price * pct);
+          const { error: commErr } = await supabase
+            .from('players')
+            .update({ money: sellerRow.money + commission })
+            .eq('id', item.seller_id!);
+          if (commErr) console.error('Commission vendeur:', commErr);
+        }
+      })();
+    }
+
     const audio = new Audio('/sons/apple-pay.mp3');
     void audio.play().catch(() => {});
 
@@ -235,6 +272,7 @@ export default function PlayPage() {
       price: parsedPrice,
       quantity: parsedQuantity,
       image: newItemImage,
+      seller_id: playerId ?? undefined,
     };
 
     const { error } = await supabase
@@ -483,10 +521,15 @@ export default function PlayPage() {
   // status === 'playing'
   const currentNode = board.find((n) => n.id === player.nodeIndex) ?? board[0];
 
-  // Roue du Chaos : classement du tour (roll décroissant, égalité = ordre d'arrivée).
+  // Roue du Chaos : classement du tour (roll décroissant, départage déterministe par id).
   const rolledCount = players.filter((p) => p.roll !== null).length;
   const allRolled = players.length > 0 && rolledCount === players.length;
-  const turnOrder = allRolled ? [...players].sort((a, b) => (b.roll ?? 0) - (a.roll ?? 0)) : [];
+  const turnOrder = allRolled
+    ? [...players].sort((a, b) => {
+        const diff = (b.roll ?? 0) - (a.roll ?? 0);
+        return diff !== 0 ? diff : a.id < b.id ? -1 : 1;
+      })
+    : [];
   const currentTurnPlayer = turnOrder.find((p) => !p.hasMoved);
   const isMyTurn = currentTurnPlayer?.id === player.id;
 
@@ -538,7 +581,7 @@ export default function PlayPage() {
             {currentNode.type === 'epicerie' && (
               <button
                 type="button"
-                onClick={() => setShowShop(true)}
+                onClick={openShop}
                 className="btn-pill btn-pill-soft w-full"
               >
                 🛒 Entrer dans l&apos;épicerie
@@ -788,7 +831,7 @@ export default function PlayPage() {
 
       {/* Panneau épicerie */}
       {showShop && (
-        <div className="modal-overlay" onClick={() => setShowShop(false)}>
+        <div className="modal-overlay" onClick={closeShop}>
           <div
             className="floating-panel bento-card w-full max-w-md flex flex-col gap-3"
             onClick={(e) => e.stopPropagation()}
@@ -910,7 +953,7 @@ export default function PlayPage() {
               )}
             </form>
 
-            <button type="button" onClick={() => setShowShop(false)} className="btn-pill btn-pill-secondary w-full">
+            <button type="button" onClick={closeShop} className="btn-pill btn-pill-secondary w-full">
               Fermer
             </button>
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Item, Player } from "@/types/game";
 import { locationName } from "@/lib/locations";
 import Reveal from "@/components/Reveal";
+import PollinationsGenerator from "@/components/PollinationsGenerator";
 
 type NarratorPlayerPanelProps = {
   players: Player[];
@@ -228,12 +229,21 @@ export default function NarratorPlayerPanel({
 
             <div>
               <label className="field-label">Image (optionnel)</label>
+              {itemImage && (
+                // eslint-disable-next-line @next/next/no-img-element -- base64 or external URL
+                <img
+                  src={itemImage}
+                  alt="Aperçu"
+                  className="w-16 h-16 object-cover rounded-2xl mb-2"
+                />
+              )}
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageChange(e.target.files?.[0])}
                 className="file-field"
               />
+              <PollinationsGenerator onImageGenerated={(url) => setItemImage(url)} />
             </div>
 
             <div>
