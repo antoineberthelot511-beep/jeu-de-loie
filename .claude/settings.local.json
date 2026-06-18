@@ -53,7 +53,8 @@
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat \"{}\"')",
       "Bash(find public *)",
       "Bash(ls public/sons)",
-      "Bash(ls public/sound)"
+      "Bash(ls public/sound)",
+      "Bash(git branch *)"
     ]
   }
 }

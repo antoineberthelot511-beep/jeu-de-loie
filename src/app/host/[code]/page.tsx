@@ -1,276 +1,731 @@
-'use client';
+"use client";
+// Pour ton projet : ajoute  "use client";  tout en haut, puis enregistre ce
+// fichier sous  src/app/host/[code]/page.tsx
+import React, { useState } from "react";
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { useGameStatus } from '@/hooks/useGameStatus';
-import { useRealtimePlayers } from '@/hooks/useRealtimePlayers';
-import { useActionRequests } from '@/hooks/useActionRequests';
-import NarratorMaps from '@/components/NarratorMaps';
-import NarratorPlayerPanel from '@/components/NarratorPlayerPanel';
-import NarratorPowers from '@/components/NarratorPowers';
-import NarratorShop from '@/components/NarratorShop';
-import NarratorCombat from '@/components/NarratorCombat';
-import NarratorTurnStatus from '@/components/NarratorTurnStatus';
-import TopBar from '@/components/TopBar';
-import TabBar from '@/components/TabBar';
-import type { Combat, Item } from '@/types/game';
+/* ---------- petites icônes SVG (pas de lib externe) ---------- */
+const Ic = {
+  grid: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  shapes: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <circle cx="7" cy="7" r="4" /><rect x="13" y="3" width="8" height="8" rx="1" />
+      <path d="M7 14l4 7H3z" /><rect x="13" y="14" width="8" height="8" rx="1" />
+    </svg>
+  ),
+  text: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M5 6h14M12 6v13M9 19h6" />
+    </svg>
+  ),
+  brand: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 9h8M8 13h5" />
+    </svg>
+  ),
+  upload: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M12 16V4M7 9l5-5 5 5M4 20h16" />
+    </svg>
+  ),
+  tools: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M14 7l3 3-9 9-3-3z" /><path d="M16 5l3 3" /><circle cx="6" cy="18" r="1" />
+    </svg>
+  ),
+  projects: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" />
+    </svg>
+  ),
+  apps: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <circle cx="6" cy="6" r="2.4" /><circle cx="18" cy="6" r="2.4" />
+      <circle cx="6" cy="18" r="2.4" /><path d="M15 18h6M18 15v6" />
+    </svg>
+  ),
+  magic: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M5 19l9-9M14 5l1.5 3L19 9.5 15.5 11 14 14l-1.5-3L9 9.5 12.5 8z" />
+    </svg>
+  ),
+  bg: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 15l5-5 4 4 3-3 6 6" />
+    </svg>
+  ),
+  mic: (c = "currentColor") => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3" />
+    </svg>
+  ),
+  spark: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={c}>
+      <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z" /><circle cx="18" cy="17" r="1.6" />
+    </svg>
+  ),
+  play: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#333">
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  ),
+  crown: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff">
+      <path d="M3 18l2-10 5 5 2-7 2 7 5-5 2 10z" />
+    </svg>
+  ),
+  chevron: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  ),
+  pencil: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M15 5l4 4L8 20H4v-4z" />
+    </svg>
+  ),
+  cloud: (c = "currentColor") => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M6 18a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0118 18z" /><path d="M9 14l2 2 4-4" />
+    </svg>
+  ),
+  chart: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  ),
+  chat: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M4 5h16v11H8l-4 4z" />
+    </svg>
+  ),
+  notes: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  ),
+  timer: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <circle cx="12" cy="13" r="8" /><path d="M12 13V9M9 2h6" />
+    </svg>
+  ),
+  grid2: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </svg>
+  ),
+  expand: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+  ),
+  help: (c = "currentColor") => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 013.5 2c0 1.5-2 1.5-2 3M12 17h.01" />
+    </svg>
+  ),
+};
 
-const TABS = [
-  { id: 'maps', label: 'Maps' },
-  { id: 'players', label: 'Joueurs' },
-  { id: 'narrator', label: 'Narrateur' },
-  { id: 'shop', label: 'Épicerie' },
+/* ---------- rail gauche ---------- */
+const railItems = [
+  { key: "modeles", label: "Modèles", icon: Ic.grid, active: true },
+  { key: "elements", label: "Éléments", icon: Ic.shapes },
+  { key: "texte", label: "Texte", icon: Ic.text },
+  { key: "marque", label: "Marque", icon: Ic.brand },
+  { key: "importer", label: "Importer", icon: Ic.upload },
+  { key: "outils", label: "Outils", icon: Ic.tools },
+  { divider: true },
+  { key: "projets", label: "Projets", icon: Ic.projects },
+  { key: "applis", label: "Applis", icon: Ic.apps },
+  { divider: true },
+  { key: "magic", label: "Média magi…", icon: Ic.magic },
+  { key: "bg", label: "Arrière-plan", icon: Ic.bg },
 ];
 
-export default function HostPage() {
-  const params = useParams<{ code: string }>();
-  const code = (params.code ?? '').toUpperCase();
+/* ---------- cartes de la grille de résultats ---------- */
+const results = [
+  { t: "L'ORIENT", sub: "PRÉSENTATION", bg: "linear-gradient(135deg,#caa37a,#7c5a3a)", light: true, play: true },
+  { t: "ROYAUME-UNIS", sub: "PRÉSENTATION", bg: "#1b2a52", accent: "#d12b2b" },
+  { t: "Roadtrip en Écosse", sub: "3 au 8 Mai 2025", bg: "linear-gradient(135deg,#5b6b55,#2f3a2c)", light: true },
+  { t: "Europe", sub: "", bg: "#16235a", euro: true },
+  { t: "BUSINESS PROJECT", sub: "", bg: "linear-gradient(135deg,#3a3f4a,#11141a)", light: true },
+  { t: "Project Proposal", sub: "", bg: "#eef1f6", dark: true, crown: true, play: true },
+  { t: "PONT D'AVIGNON", sub: "", bg: "linear-gradient(135deg,#6f8aa6,#3a4f63)", light: true, crown: true },
+  { t: "", sub: "", bg: "#f4f6fa", dark: true, crown: true, info: true },
+  { t: "RÉUNION DE RENTRÉE", sub: "2026-2027", bg: "linear-gradient(135deg,#243b6b,#0f1c3a)", light: true, crown: true, play: true },
+  { t: "CHINA", sub: "", bg: "#b91c1c", light: true },
+  { t: "Monaco", sub: "", bg: "#eef1f6", dark: true },
+  { t: "", sub: "", bg: "#c0182a", light: true, leaf: true },
+];
 
-  const { gameId, status, setStatus, combat, shopItems, round, loading, error } = useGameStatus(code);
-  const players = useRealtimePlayers(gameId);
-  const pendingRequests = useActionRequests(gameId);
+export default function HostScreen() {
+  const [zoom] = useState(63);
 
-  const [starting, setStarting] = useState(false);
-  const [activeTab, setActiveTab] = useState('maps');
+  const railIconColor = (a: boolean | undefined) => (a ? "#00838c" : "#3d3f44");
 
-  const handleStartGame = async () => {
-    if (!gameId) return;
-    setStarting(true);
-    const { error: updateError } = await supabase
-      .from('games')
-      .update({ status: 'playing' })
-      .eq('id', gameId);
-
-    if (!updateError) setStatus('playing');
-    setStarting(false);
-  };
-
-  const handleResolveRequest = (requestId: string) => {
-    void supabase.from('action_requests').update({ status: 'resolved' }).eq('id', requestId).then();
-  };
-
-  // Narrateur action: incrémente le compteur croque-monsieur du joueur ciblé,
-  // ce qui déclenche la vidéo en plein écran sur son téléphone.
-  const handleSummonCroqueMonsieur = (playerId: string) => {
-    const target = players.find((p) => p.id === playerId);
-    if (!target) return;
-
-    void supabase
-      .from('players')
-      .update({ croque_count: target.croqueCount + 1 })
-      .eq('id', playerId)
-      .then();
-  };
-
-  // Narrateur action: give an item to a player (collective if they're in Communisme Land)
-  const handleGiveItem = (playerId: string, item: Item) => {
-    const target = players.find((p) => p.id === playerId);
-    if (!target) return false;
-
-    const isCollective = target.location === 'world1';
-
-    if (isCollective) {
-      players.forEach((p) => {
-        void supabase
-          .from('players')
-          .update({ inventory: [...p.inventory, { ...item, id: crypto.randomUUID() }] })
-          .eq('id', p.id)
-          .then();
-      });
-    } else {
-      void supabase
-        .from('players')
-        .update({ inventory: [...target.inventory, { ...item, id: crypto.randomUUID() }] })
-        .eq('id', playerId)
-        .then();
-    }
-
-    return isCollective;
-  };
-
-  const handleRemoveItem = (playerId: string, itemId: string) => {
-    const target = players.find((p) => p.id === playerId);
-    if (!target) return;
-
-    void supabase
-      .from('players')
-      .update({ inventory: target.inventory.filter((item) => item.id !== itemId) })
-      .eq('id', playerId)
-      .then();
-  };
-
-  const handleAdjustMoney = (playerId: string, amount: number) => {
-    const target = players.find((p) => p.id === playerId);
-    if (!target) return;
-
-    void supabase
-      .from('players')
-      .update({ money: Math.max(0, target.money + amount) })
-      .eq('id', playerId)
-      .then(({ error }) => {
-        if (error) console.error('handleAdjustMoney:', error);
-      });
-  };
-
-  const handleAdjustLife = (playerId: string, amount: number) => {
-    const target = players.find((p) => p.id === playerId);
-    if (!target) return;
-
-    void supabase
-      .from('players')
-      .update({ life: Math.max(0, target.life + amount) })
-      .eq('id', playerId)
-      .then(({ error }) => {
-        if (error) console.error('handleAdjustLife:', error);
-      });
-  };
-
-  const handleSendMessage = (playerId: string, message: string) => {
-    void supabase
-      .from('players')
-      .update({ narrator_message: message || null })
-      .eq('id', playerId)
-      .then();
-  };
-
-  // Narrateur action: lance le combat de la Forêt mystérieuse contre Camarade Mishka.
-  const handleStartForestCombat = () => {
-    if (!gameId) return;
-
-    const newCombat: Combat = {
-      active: true,
-      bossName: 'Camarade Mishka',
-      bossHp: 100,
-      bossMaxHp: 100,
-      round: 1,
-      log: [],
-    };
-
-    void supabase.from('games').update({ combat: newCombat }).eq('id', gameId).then();
-
-    players.forEach((player) => {
-      void supabase
-        .from('players')
-        .update({ combat_action: null, in_goulag: false })
-        .eq('id', player.id)
-        .then();
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="page-shell page-enter items-center justify-center px-4 py-12">
-        <p className="body-text">Chargement…</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="page-shell page-enter items-center justify-center px-4 py-12">
-        <div className="bento-card w-full max-w-md text-center">
-          <h1 className="section-title mb-2">Narrateur</h1>
-          <p className="danger-text">{error}</p>
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        fontFamily:
+          "'Segoe UI', Roboto, system-ui, -apple-system, sans-serif",
+        background: "#edeef0",
+        color: "#0d1216",
+        overflow: "hidden",
+      }}
+    >
+      {/* ============ BARRE DU HAUT ============ */}
+      <div
+        style={{
+          height: 56,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 14px",
+          background:
+            "linear-gradient(90deg,#1fb6c4 0%,#3aa0d8 26%,#5f8fe6 42%,#e9edf3 60%,#ffffff 100%)",
+          gap: 14,
+        }}
+      >
+        {/* logo maison */}
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 9,
+            background: "#00c4cc",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4">
+            <path d="M16 8.5a4.5 4.5 0 10.2 7" strokeLinecap="round" />
+          </svg>
         </div>
-      </div>
-    );
-  }
 
-  if (status === 'lobby') {
-    return (
-      <div className="page-shell page-enter items-center justify-center px-4 py-12 sm:px-6">
-        <div className="w-full max-w-md flex flex-col items-center gap-8">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="eyebrow">Code de la partie</span>
-            <h1 className="page-title tracking-[0.2em]">{code}</h1>
+        <span style={{ fontWeight: 600, fontSize: 15, color: "#0d1216" }}>Fichier</span>
+        <span style={{ fontWeight: 600, fontSize: 15, color: "#0d1216" }}>Redimensionner</span>
+
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontWeight: 600,
+            fontSize: 15,
+            color: "#0d1216",
+          }}
+        >
+          {Ic.pencil("#0d1216")} Retouche {Ic.chevron("#0d1216")}
+        </span>
+
+        {/* badge autosave + Nouveau */}
+        <div style={{ position: "relative", marginLeft: 2 }}>
+          <span
+            style={{
+              position: "absolute",
+              top: -14,
+              left: -2,
+              background: "#7c3aed",
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "1px 6px",
+              borderRadius: 5,
+            }}
+          >
+            Nouveau
+          </span>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              background: "rgba(255,255,255,.55)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {Ic.cloud("#1f7a82")}
+          </div>
+        </div>
+
+        {/* titre centré */}
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <span style={{ color: "#9aa3ad", fontSize: 14 }}>Sans titre - Présentation</span>
+        </div>
+
+        {/* droite */}
+        <button style={btnGhost}>
+          <span style={{ color: "#f0a500" }}>{"👑"}</span> Tester pour 0&nbsp;€
+        </button>
+
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: "50%",
+            border: "2px solid #e0245e",
+            background: "#6b3fa0",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 15,
+          }}
+        >
+          A
+        </div>
+
+        <span style={{ color: "#3d3f44", cursor: "pointer" }}>{Ic.chart("#3d3f44")}</span>
+        <span style={{ color: "#3d3f44", cursor: "pointer" }}>{Ic.chat("#3d3f44")}</span>
+
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            color: "#7c3aed",
+            fontWeight: 600,
+            fontSize: 15,
+            cursor: "pointer",
+          }}
+        >
+          Présenter {Ic.chevron("#7c3aed")}
+        </span>
+
+        <button
+          style={{
+            background: "#0d1117",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 18px",
+            fontWeight: 600,
+            fontSize: 15,
+            cursor: "pointer",
+          }}
+        >
+          Partager
+        </button>
+      </div>
+
+      {/* ============ CORPS ============ */}
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {/* rail gauche */}
+        <div
+          style={{
+            width: 72,
+            flexShrink: 0,
+            background: "#fff",
+            borderRight: "1px solid #ececec",
+            paddingTop: 6,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            overflowY: "auto",
+          }}
+        >
+          {railItems.map((it, i) =>
+            it.divider ? (
+              <div key={i} style={{ width: 40, height: 1, background: "#ececec", margin: "8px 0" }} />
+            ) : (
+              <div
+                key={it.key}
+                style={{
+                  width: "100%",
+                  padding: "9px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 4,
+                  cursor: "pointer",
+                  color: railIconColor(it.active),
+                  background: it.active ? "#f0fbfc" : "transparent",
+                }}
+              >
+                {it.icon!(railIconColor(it.active))}
+                <span style={{ fontSize: 11, fontWeight: it.active ? 700 : 500 }}>{it.label}</span>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* zone canvas + panneau flottant */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          {/* canvas (slide blanc) */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "62%",
+                aspectRatio: "16 / 9",
+                maxHeight: "82%",
+                background: "#fff",
+                borderRadius: 4,
+                boxShadow: "0 1px 6px rgba(0,0,0,.12)",
+              }}
+            />
           </div>
 
-          <div className="bento-card w-full flex flex-col gap-4">
-            <h2 className="section-title text-center">
-              Joueurs connectés ({players.length})
-            </h2>
+          {/* panneau modèles flottant */}
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: 12,
+              bottom: 12,
+              width: 350,
+              background: "#fff",
+              borderRadius: 12,
+              boxShadow: "0 4px 24px rgba(0,0,0,.14)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* recherche */}
+            <div style={{ padding: "14px 14px 10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  border: "1px solid #d9dde3",
+                  borderRadius: 9,
+                  padding: "9px 12px",
+                }}
+              >
+                <span style={{ color: "#6b7280", fontSize: 20, lineHeight: 0 }}>+</span>
+                <span style={{ flex: 1, color: "#9aa3ad", fontSize: 13.5 }}>
+                  Décrivez votre design de rêve
+                </span>
+                {Ic.mic("#5b6470")}
+              </div>
 
-            {players.length === 0 ? (
-              <p className="body-text text-center">En attente de joueurs…</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {players.map((player) => (
-                  <div key={player.id} className="bento-card-soft flex items-center gap-3">
-                    {player.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- base64 data URL, next/image doesn't support it
-                      <img src={player.image} alt={player.name} className="avatar-circle w-10 h-10 flex-shrink-0" />
-                    ) : (
-                      <span className="avatar-placeholder w-10 h-10 flex-shrink-0">—</span>
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                <button
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    border: "1px solid #d9dde3",
+                    background: "#fff",
+                    borderRadius: 9,
+                    padding: "9px 0",
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  {Ic.spark("#0d1216")} Générer
+                </button>
+                <button
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    background: "#7c3aed",
+                    color: "#fff",
+                    borderRadius: 9,
+                    padding: "9px 0",
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  Rechercher
+                </button>
+              </div>
+            </div>
+
+            {/* liste scrollable */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+              <div style={sectionTitle}>Utilisés récemment</div>
+              {/* carte MAPS */}
+              <div
+                style={{
+                  height: 96,
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  background: "#e9eef2",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "Georgia, serif",
+                    fontWeight: 800,
+                    fontSize: 16,
+                    color: "#3a4a78",
+                    letterSpacing: 1,
+                  }}
+                >
+                  A GAME ABOUT
+                  <br />
+                  MAPS
+                </span>
+                <svg
+                  width="42"
+                  height="42"
+                  viewBox="0 0 24 24"
+                  style={{ position: "absolute", right: 26, top: 22 }}
+                >
+                  <path
+                    d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"
+                    fill="#e23a3a"
+                  />
+                  <circle cx="12" cy="9" r="2.6" fill="#fff" />
+                </svg>
+              </div>
+
+              <div style={sectionTitle}>Tous les résultats</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {results.map((r, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      height: 78,
+                      borderRadius: 8,
+                      background: r.bg,
+                      position: "relative",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: r.bg.startsWith("#ee") || r.bg.startsWith("#f4") ? "1px solid #e5e8ee" : "none",
+                    }}
+                  >
+                    {r.euro && (
+                      <div style={{ display: "flex", flexWrap: "wrap", width: 34, justifyContent: "center", marginBottom: 4 }}>
+                        {Array.from({ length: 10 }).map((_, k) => (
+                          <span key={k} style={{ color: "#f5d000", fontSize: 7 }}>★</span>
+                        ))}
+                      </div>
                     )}
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                      {player.name}
-                    </span>
+                    {r.info && (
+                      <div style={{ width: "70%" }}>
+                        {[0, 1, 2, 3].map((k) => (
+                          <div key={k} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3a4f8a" }} />
+                            <span style={{ flex: 1, height: 4, background: "#cdd5e4", borderRadius: 2 }} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {r.leaf && (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                        <path d="M12 2c-1 6-5 7-5 12a5 5 0 0010 0c0-5-4-6-5-12z" />
+                      </svg>
+                    )}
+                    {r.t && (
+                      <span
+                        style={{
+                          color: r.dark ? "#1b2a52" : "#fff",
+                          fontWeight: 800,
+                          fontSize: r.t.length > 12 ? 10 : 13,
+                          textAlign: "center",
+                          lineHeight: 1.15,
+                          padding: "0 6px",
+                          textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
+                        }}
+                      >
+                        {r.t}
+                      </span>
+                    )}
+                    {r.sub && (
+                      <span
+                        style={{
+                          color: r.dark ? "#5b6470" : "rgba(255,255,255,.9)",
+                          fontSize: 8,
+                          marginTop: 2,
+                          textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
+                        }}
+                      >
+                        {r.sub}
+                      </span>
+                    )}
+                    {r.accent && (
+                      <span style={{ width: 30, height: 5, background: r.accent, marginTop: 3 }} />
+                    )}
+                    {r.play && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 6,
+                          left: 6,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: "rgba(255,255,255,.92)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {Ic.play()}
+                      </div>
+                    )}
+                    {r.crown && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 6,
+                          right: 6,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          background: "#7c3aed",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {Ic.crown()}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleStartGame}
-              disabled={starting || players.length < 2}
-              className="btn-pill btn-pill-primary w-full"
-            >
-              {starting ? '…' : 'Démarrer la partie'}
-            </button>
-
-            {players.length < 2 && (
-              <p className="body-text text-center">Il faut au moins 2 joueurs pour commencer</p>
-            )}
+            </div>
           </div>
         </div>
       </div>
-    );
-  }
 
-  // Combat actif : tous les écrans basculent sur l'écran de combat.
-  if (combat.active) {
-    return <NarratorCombat gameId={gameId} combat={combat} players={players} />;
-  }
-
-  // status === 'playing'
-  return (
-    <div className="page-shell page-enter">
-      <TopBar
-        title={`Partie ${code}`}
-        items={[{ label: 'Joueurs', value: String(players.length) }]}
+      {/* ============ BARRE DU BAS ============ */}
+      <div
+        style={{
+          height: 48,
+          flexShrink: 0,
+          background: "#fff",
+          borderTop: "1px solid #ececec",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 16px",
+          gap: 20,
+          fontSize: 13,
+          color: "#3d3f44",
+        }}
       >
-        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
-      </TopBar>
+        <span style={footItem}>{Ic.notes("#3d3f44")} Notes</span>
+        <span style={footItem}>{Ic.timer("#3d3f44")} Minuteur</span>
 
-      <NarratorTurnStatus gameId={gameId} round={round} players={players} />
+        {/* centre : page + ajouter */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 56,
+              height: 34,
+              background: "#fff",
+              border: "2px solid #7c3aed",
+              borderRadius: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              color: "#3d3f44",
+            }}
+          >
+            1
+          </div>
+          <div
+            style={{
+              height: 34,
+              padding: "0 10px",
+              background: "#f1f2f4",
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 0 }}>+</span>
+            {Ic.chevron("#3d3f44")}
+          </div>
+        </div>
 
-      {activeTab === 'maps' && <NarratorMaps players={players} />}
-
-      {activeTab === 'players' && (
-        <NarratorPlayerPanel
-          players={players}
-          onGiveItem={handleGiveItem}
-          onRemoveItem={handleRemoveItem}
-          onAdjustMoney={handleAdjustMoney}
-          onAdjustLife={handleAdjustLife}
-          onSendMessage={handleSendMessage}
-          onSummonCroqueMonsieur={handleSummonCroqueMonsieur}
-        />
-      )}
-
-      {activeTab === 'narrator' && (
-        <NarratorPowers
-          players={players}
-          requests={pendingRequests}
-          onResolve={handleResolveRequest}
-          onSummonCroqueMonsieur={handleSummonCroqueMonsieur}
-          onStartForestCombat={handleStartForestCombat}
-        />
-      )}
-
-      {activeTab === 'shop' && <NarratorShop gameId={gameId} shopItems={shopItems} />}
+        {/* droite : zoom + pages */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 110, height: 4, background: "#dfe2e7", borderRadius: 2, position: "relative" }}>
+              <div style={{ width: "55%", height: 4, background: "#9aa3ad", borderRadius: 2 }} />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "52%",
+                  top: -4,
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  border: "1px solid #b5bcc6",
+                }}
+              />
+            </div>
+            <span>{zoom} %</span>
+          </div>
+          <span style={footItem}>{Ic.grid2("#3d3f44")} Pages</span>
+          <span>1/1</span>
+          {Ic.grid2("#3d3f44")}
+          {Ic.expand("#3d3f44")}
+          {Ic.help("#3d3f44")}
+        </div>
+      </div>
     </div>
   );
 }
+
+const btnGhost = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  background: "#fff",
+  border: "1px solid #e3e6ea",
+  borderRadius: 8,
+  padding: "7px 14px",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+  color: "#0d1216",
+};
+
+const sectionTitle = {
+  fontWeight: 700,
+  fontSize: 14,
+  margin: "4px 0 10px",
+  color: "#0d1216",
+};
+
+const footItem = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  cursor: "pointer",
+};
