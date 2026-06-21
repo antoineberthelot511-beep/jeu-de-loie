@@ -18,7 +18,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*2. Le joueur voit le plateau en temps réel\*\*
+\- \[x] \*\*2. Le joueur voit le plateau en temps réel\*\*
 
 &#x20; - Fichiers : src/app/play/\[code]/page.tsx
 
