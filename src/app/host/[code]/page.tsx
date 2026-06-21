@@ -304,6 +304,9 @@ export default function HostScreen() {
   const [gameId, setGameId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "loading" | "error">("idle");
   const [diceRoll, setDiceRoll] = useState<number | null>(null);
+  const [importedImages, setImportedImages] = useState<string[]>([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const dragDepthRef = useRef(0);
 
   // Trouve la partie via son code, puis charge le plateau sauvegardé (si présent)
   useEffect(() => {
@@ -590,17 +593,25 @@ export default function HostScreen() {
     players.forEach((player, i) => addPlayerPawn(player, i));
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function addImageAtPosition(src: string, pos?: { x: number; y: number }, w = 240, h = 160) {
+    if (locked) return;
+    const { x, y } = pos ?? centerPos(w, h);
+    addElement({ type: "image", x, y, w, h, color: "#000", src });
+    setImportedImages((prev) => (prev.includes(src) ? prev : [...prev, src]));
+  }
+
+  function addImageFile(file: File, pos?: { x: number; y: number }) {
+    if (locked || !file.type.startsWith("image/")) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const w = 240;
-      const h = 160;
-      const { x, y } = centerPos(w, h);
-      addElement({ type: "image", x, y, w, h, color: "#000", src: String(reader.result) });
+      addImageAtPosition(String(reader.result), pos);
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) addImageFile(file);
     e.target.value = "";
   }
 
@@ -609,6 +620,45 @@ export default function HostScreen() {
     const h = 160;
     const { x, y } = centerPos(w, h);
     addElement({ type: "image", x, y, w, h, color: "#000", src: asset.src });
+  }
+
+  function dropPosOnCanvas(e: React.DragEvent, w: number, h: number) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return centerPos(w, h);
+    return { x: e.clientX - rect.left - w / 2, y: e.clientY - rect.top - h / 2 };
+  }
+
+  function handleCanvasDragEnter(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFile(true);
+  }
+
+  function handleCanvasDragOver(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+  }
+
+  function handleCanvasDragLeave(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingFile(false);
+  }
+
+  function handleCanvasDrop(e: React.DragEvent) {
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDraggingFile(false);
+    if (locked) return;
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    files.forEach((file, i) => {
+      const w = 240;
+      const h = 160;
+      const pos = dropPosOnCanvas(e, w, h);
+      addImageFile(file, { x: pos.x + i * 20, y: pos.y + i * 20 });
+    });
   }
 
   function handleElementMouseDown(e: React.MouseEvent, id: string) {
@@ -718,12 +768,6 @@ export default function HostScreen() {
         copySelected();
         return;
       }
-      // Paste: Ctrl+V
-      if (e.ctrlKey && e.key === "v" && !e.shiftKey && !editingId) {
-        e.preventDefault();
-        pasteSelected();
-        return;
-      }
       // Duplicate: Ctrl+D
       if (e.ctrlKey && e.key === "d" && !e.shiftKey && !editingId) {
         e.preventDefault();
@@ -798,8 +842,31 @@ export default function HostScreen() {
         return;
       }
     }
+    // Ctrl+V : colle une image du presse-papier OS sur le canvas, sinon retombe
+    // sur le collage interne (élément copié via Ctrl+C).
+    function onPaste(e: ClipboardEvent) {
+      if (editingId) return; // laisse le texte en édition gérer son propre collage
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.type.startsWith("image/")) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            if (file) addImageFile(file);
+            return;
+          }
+        }
+      }
+      e.preventDefault();
+      pasteSelected();
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("paste", onPaste);
+    };
   }, [selectedId, editingId, undoStack, redoStack, elements, canvasBg, locked]);
 
   return (
@@ -1080,7 +1147,40 @@ export default function HostScreen() {
         </div>
 
         {/* zone canvas + panneau flottant */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <div
+          style={{ flex: 1, position: "relative", overflow: "hidden" }}
+          onDragEnter={handleCanvasDragEnter}
+          onDragOver={handleCanvasDragOver}
+          onDragLeave={handleCanvasDragLeave}
+          onDrop={handleCanvasDrop}
+        >
+          {isDraggingFile && !locked && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 10,
+                background: "rgba(13,18,22,.55)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  color: "#fff",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  border: "3px dashed #fff",
+                  borderRadius: 16,
+                  padding: "28px 44px",
+                }}
+              >
+                📁 Dépose ton image
+              </div>
+            </div>
+          )}
           {locked && (
             <div
               style={{
@@ -1697,19 +1797,35 @@ export default function HostScreen() {
             {panel === "importer" && (
               <div style={{ padding: 16 }}>
                 <div style={sectionTitle}>Importer un média</div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={locked}
+                <div
+                  onClick={() => !locked && fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (locked) return;
+                    Array.from(e.dataTransfer.files)
+                      .filter((f) => f.type.startsWith("image/"))
+                      .forEach((file) => addImageFile(file));
+                  }}
                   style={{
-                    ...btnGhost,
-                    width: "100%",
-                    justifyContent: "center",
+                    border: "2px dashed #c7ccd3",
+                    borderRadius: 12,
+                    padding: "30px 12px",
+                    textAlign: "center",
+                    color: "#6b7280",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    lineHeight: 1.5,
                     opacity: locked ? 0.5 : 1,
                     cursor: locked ? "not-allowed" : "pointer",
                   }}
                 >
-                  {Ic.upload("#0d1216")} Choisir une image
-                </button>
+                  📁 Glisse tes images ici
+                  <br />
+                  ou clique pour parcourir
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1737,6 +1853,30 @@ export default function HostScreen() {
                     </button>
                   ))}
                 </div>
+
+                {importedImages.length > 0 && (
+                  <>
+                    <div style={{ ...sectionTitle, marginTop: 18 }}>Importées</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, opacity: locked ? 0.5 : 1 }}>
+                      {importedImages.map((src) => (
+                        <button
+                          key={src}
+                          onClick={() => addImageAtPosition(src)}
+                          disabled={locked}
+                          style={{ ...shapeBtn, padding: 4, cursor: locked ? "not-allowed" : "pointer" }}
+                          title="Replacer cette image sur le canvas"
+                        >
+                          <img
+                            src={src}
+                            alt=""
+                            draggable={false}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 4, pointerEvents: "none" }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
