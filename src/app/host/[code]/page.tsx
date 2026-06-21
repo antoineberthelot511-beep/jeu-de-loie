@@ -301,6 +301,7 @@ export default function HostScreen() {
 
   const [gameId, setGameId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "loading" | "error">("idle");
+  const [diceRoll, setDiceRoll] = useState<number | null>(null);
 
   // Trouve la partie via son code, puis charge le plateau sauvegardé (si présent)
   useEffect(() => {
@@ -310,7 +311,7 @@ export default function HostScreen() {
     (async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("id, board")
+        .select("id, board, dice_roll")
         .eq("code", code)
         .maybeSingle();
 
@@ -323,6 +324,7 @@ export default function HostScreen() {
         if (board.elements) setElements(board.elements);
         if (board.canvasBg) setCanvasBg(board.canvasBg);
       }
+      setDiceRoll((data.dice_roll as number | null) ?? null);
     })();
 
     return () => {
@@ -341,7 +343,7 @@ export default function HostScreen() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
         (payload) => {
-          const row = payload.new as { board: { elements?: CanvasElement[] } | null };
+          const row = payload.new as { board: { elements?: CanvasElement[] } | null; dice_roll: number | null };
           const incoming = row.board?.elements ?? [];
           setElements((prev) =>
             prev.map((el) => {
@@ -350,6 +352,7 @@ export default function HostScreen() {
               return match ? { ...el, x: match.x, y: match.y } : el;
             })
           );
+          setDiceRoll(row.dice_roll ?? null);
         }
       )
       .subscribe();
@@ -358,6 +361,13 @@ export default function HostScreen() {
       supabase.removeChannel(channel);
     };
   }, [gameId]);
+
+  async function rollDice() {
+    if (!gameId) return;
+    const value = 1 + Math.floor(Math.random() * 6);
+    setDiceRoll(value);
+    await supabase.from("games").update({ dice_roll: value }).eq("id", gameId);
+  }
 
   async function handleSave() {
     if (!gameId) return;
@@ -868,6 +878,26 @@ export default function HostScreen() {
           </button>
         </div>
 
+        {locked && (
+          <button
+            onClick={rollDice}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#fff",
+              border: "1px solid #e3e6ea",
+              borderRadius: 8,
+              padding: "7px 14px",
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            🎲 Lancer le dé
+          </button>
+        )}
+
         {/* badge autosave + Nouveau */}
         <div style={{ position: "relative", marginLeft: 2 }}>
           <span
@@ -1031,6 +1061,30 @@ export default function HostScreen() {
               }}
             >
               🔒 Mode Jeu — plateau verrouillé
+            </div>
+          )}
+          {diceRoll !== null && (
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                right: 12,
+                zIndex: 4,
+                background: "#fff",
+                color: "#0d1216",
+                fontWeight: 800,
+                fontSize: 22,
+                width: 48,
+                height: 48,
+                borderRadius: 10,
+                boxShadow: "0 4px 14px rgba(0,0,0,.25)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              title="Dernier résultat du dé"
+            >
+              🎲 {diceRoll}
             </div>
           )}
           {/* canvas (slide blanc) */}

@@ -50,7 +50,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*6. Dé / lancer\*\*
+\- \[x] \*\*6. Dé / lancer\*\*
 
 &#x20; - Fini quand : en mode Jeu, un bouton lance un dé (1-6) et le résultat s'affiche pour tous.
 

@@ -69,6 +69,7 @@ export default function PlayPage() {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [canvasBg, setCanvasBg] = useState("#ffffff");
+  const [diceRoll, setDiceRoll] = useState<number | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const elementsRef = useRef<CanvasElement[]>([]);
@@ -86,7 +87,7 @@ export default function PlayPage() {
     (async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("id, board")
+        .select("id, board, dice_roll")
         .eq("code", code)
         .maybeSingle();
 
@@ -95,6 +96,7 @@ export default function PlayPage() {
       const board = data.board as Board | null;
       setElements(board?.elements ?? []);
       setCanvasBg(board?.canvasBg ?? "#ffffff");
+      setDiceRoll((data.dice_roll as number | null) ?? null);
     })();
 
     return () => {
@@ -113,9 +115,10 @@ export default function PlayPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
         (payload) => {
-          const row = payload.new as { board: Board | null };
+          const row = payload.new as { board: Board | null; dice_roll: number | null };
           setElements(row.board?.elements ?? []);
           setCanvasBg(row.board?.canvasBg ?? "#ffffff");
+          setDiceRoll(row.dice_roll ?? null);
         }
       )
       .subscribe();
@@ -202,6 +205,30 @@ export default function PlayPage() {
           touchAction: "none",
         }}
       >
+        {diceRoll !== null && (
+          <div
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              zIndex: 4,
+              background: "#fff",
+              color: "#0d1216",
+              fontWeight: 800,
+              fontSize: 16,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              boxShadow: "0 3px 10px rgba(0,0,0,.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Dernier résultat du dé"
+          >
+            🎲{diceRoll}
+          </div>
+        )}
         {elements.map((el) => {
           const isMine = el.type === "pawn" && el.playerId === myPlayerId;
           return (
