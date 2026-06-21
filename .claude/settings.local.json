@@ -55,7 +55,12 @@
       "Bash(ls public/sons)",
       "Bash(ls public/sound)",
       "Bash(git branch *)",
-      "Bash(jobs *)"
+      "Bash(jobs *)",
+      "Bash(find src/app/host -type f)",
+      "Bash(find src/app/play -type f)",
+      "Bash(find . -iname \"*.sql\" -not -path \"*/node_modules/*\")",
+      "Bash(find . -iname \"*migration*\" -not -path \"*/node_modules/*\")",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
