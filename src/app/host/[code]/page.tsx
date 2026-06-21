@@ -203,6 +203,12 @@ interface CanvasElement {
 
 const COLORS = ["#7c3aed", "#e0245e", "#f0a500", "#16a34a", "#0ea5e9", "#0d1216"];
 const PAWN_COLORS = ["#7c3aed", "#e0245e", "#f0a500", "#16a34a", "#0ea5e9", "#d946ef", "#0d1216", "#0891b2"];
+// Les pions sont positionnés en % du canvas (pas en px) pour rester au même endroit
+// visuellement que le canvas soit affiché en grand (narrateur) ou sur un téléphone (joueur).
+// Le canvas garde toujours un ratio 16/9, donc %largeur et %hauteur restent comparables
+// d'un écran à l'autre. w/h choisis pour donner un cercle visuellement régulier.
+const PAWN_W_PCT = 8;
+const PAWN_H_PCT = PAWN_W_PCT * (16 / 9);
 
 const shapeDefs: { key: ShapeType; label: string; render: (c: string) => React.ReactNode }[] = [
   { key: "rect", label: "Rectangle", render: (c) => <div style={{ width: 32, height: 32, background: c }} /> },
@@ -315,6 +321,35 @@ export default function HostScreen() {
       active = false;
     };
   }, [code]);
+
+  // Reçoit en direct les déplacements de pion faits par les joueurs depuis leur tel,
+  // sans toucher aux autres éléments en cours d'édition côté narrateur.
+  useEffect(() => {
+    if (!gameId) return;
+
+    const channel = supabase
+      .channel(`game-board-pawns-${gameId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` },
+        (payload) => {
+          const row = payload.new as { board: { elements?: CanvasElement[] } | null };
+          const incoming = row.board?.elements ?? [];
+          setElements((prev) =>
+            prev.map((el) => {
+              if (el.type !== "pawn") return el;
+              const match = incoming.find((it) => it.id === el.id);
+              return match ? { ...el, x: match.x, y: match.y } : el;
+            })
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameId]);
 
   async function handleSave() {
     if (!gameId) return;
@@ -492,13 +527,12 @@ export default function HostScreen() {
 
   function addPlayerPawn(player: Player, index = 0) {
     if (elements.some((el) => el.type === "pawn" && el.playerId === player.id)) return;
-    const w = 64;
-    const h = 64;
-    const { x, y } = centerPos(w, h);
+    const w = PAWN_W_PCT;
+    const h = PAWN_H_PCT;
     addElement({
       type: "pawn",
-      x: x + index * 20,
-      y: y + index * 20,
+      x: 50 - w / 2 + index * 3,
+      y: 50 - h / 2 + index * 3,
       w,
       h,
       color: PAWN_COLORS[index % PAWN_COLORS.length],
@@ -533,6 +567,10 @@ export default function HostScreen() {
     setSelectedId(id);
     const el = elements.find((it) => it.id === id);
     if (!el) return;
+    const isPawn = el.type === "pawn";
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const cw = rect?.width || 1;
+    const ch = rect?.height || 1;
     const startX = e.clientX;
     const startY = e.clientY;
     const startElX = el.x;
@@ -540,7 +578,9 @@ export default function HostScreen() {
     function onMove(ev: MouseEvent) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
-      setElements((prev) => prev.map((p) => (p.id === id ? { ...p, x: startElX + dx, y: startElY + dy } : p)));
+      const nx = isPawn ? startElX + (dx / cw) * 100 : startElX + dx;
+      const ny = isPawn ? startElY + (dy / ch) * 100 : startElY + dy;
+      setElements((prev) => prev.map((p) => (p.id === id ? { ...p, x: nx, y: ny } : p)));
     }
     function onUp() {
       window.removeEventListener("mousemove", onMove);
@@ -950,10 +990,10 @@ export default function HostScreen() {
                     onDoubleClick={el.type === "text" ? (e) => handleTextDoubleClick(e, el.id) : undefined}
                     style={{
                       position: "absolute",
-                      left: el.x,
-                      top: el.y,
-                      width: el.w,
-                      height: el.h,
+                      left: el.type === "pawn" ? `${el.x}%` : el.x,
+                      top: el.type === "pawn" ? `${el.y}%` : el.y,
+                      width: el.type === "pawn" ? `${el.w}%` : el.w,
+                      height: el.type === "pawn" ? `${el.h}%` : el.h,
                       outline: isSelected ? "2px solid #7c3aed" : "none",
                       outlineOffset: 2,
                       cursor: isEditing ? "text" : "move",
@@ -1012,7 +1052,7 @@ export default function HostScreen() {
                               style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
                             />
                           ) : (
-                            <span style={{ color: "#fff", fontWeight: 700, fontSize: el.h * 0.4, pointerEvents: "none" }}>
+                            <span style={{ color: "#fff", fontWeight: 700, fontSize: "min(3vw, 22px)", pointerEvents: "none" }}>
                               {(el.playerName ?? "?").slice(0, 1).toUpperCase()}
                             </span>
                           )}
@@ -1042,7 +1082,7 @@ export default function HostScreen() {
                       renderShapeContent(el)
                     )}
 
-                    {isSelected && !isEditing && (
+                    {isSelected && !isEditing && el.type !== "pawn" && (
                       <div
                         onMouseDown={(e) => handleResizeMouseDown(e, el.id)}
                         style={{

@@ -34,7 +34,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*4. Le joueur déplace son propre pion\*\*
+\- \[x] \*\*4. Le joueur déplace son propre pion\*\*
 
 &#x20; - Fichiers : src/app/play/\[code]/page.tsx
 
