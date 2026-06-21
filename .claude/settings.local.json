@@ -54,7 +54,8 @@
       "Bash(find public *)",
       "Bash(ls public/sons)",
       "Bash(ls public/sound)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(jobs *)"
     ]
   }
 }

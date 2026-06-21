@@ -1,7 +1,7 @@
 "use client";
 // Pour ton projet : ajoute  "use client";  tout en haut, puis enregistre ce
 // fichier sous  src/app/host/[code]/page.tsx
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 /* ---------- petites icônes SVG (pas de lib externe) ---------- */
 const Ic = {
@@ -134,7 +134,7 @@ const Ic = {
 
 /* ---------- rail gauche ---------- */
 const railItems = [
-  { key: "modeles", label: "Modèles", icon: Ic.grid, active: true },
+  { key: "modeles", label: "Modèles", icon: Ic.grid },
   { key: "elements", label: "Éléments", icon: Ic.shapes },
   { key: "texte", label: "Texte", icon: Ic.text },
   { key: "marque", label: "Marque", icon: Ic.brand },
@@ -146,7 +146,7 @@ const railItems = [
   { divider: true },
   { key: "magic", label: "Média magi…", icon: Ic.magic },
   { key: "bg", label: "Arrière-plan", icon: Ic.bg },
-];
+] as const;
 
 /* ---------- cartes de la grille de résultats ---------- */
 const results = [
@@ -164,10 +164,442 @@ const results = [
   { t: "", sub: "", bg: "#c0182a", light: true, leaf: true },
 ];
 
-export default function HostScreen() {
-  const [zoom] = useState(63);
+/* ---------- éditeur : types & données ---------- */
+type ShapeType = "rect" | "circle" | "triangle" | "star" | "line";
+type ElementType = "text" | "image" | ShapeType;
 
-  const railIconColor = (a: boolean | undefined) => (a ? "#00838c" : "#3d3f44");
+interface CanvasElement {
+  id: string;
+  type: ElementType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  text?: string;
+  fontSize?: number;
+  bold?: boolean;
+  src?: string;
+  // New properties
+  rotation?: number; // in degrees
+  opacity?: number; // 0-100
+  fontFamily?: string; // for text
+  textAlign?: 'left' | 'center' | 'right'; // for text
+}
+
+const COLORS = ["#7c3aed", "#e0245e", "#f0a500", "#16a34a", "#0ea5e9", "#0d1216"];
+
+const shapeDefs: { key: ShapeType; label: string; render: (c: string) => React.ReactNode }[] = [
+  { key: "rect", label: "Rectangle", render: (c) => <div style={{ width: 32, height: 32, background: c }} /> },
+  { key: "circle", label: "Cercle", render: (c) => <div style={{ width: 32, height: 32, borderRadius: "50%", background: c }} /> },
+  {
+    key: "triangle",
+    label: "Triangle",
+    render: (c) => (
+      <svg width="32" height="32" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="50,4 97,96 3,96" fill={c} />
+      </svg>
+    ),
+  },
+  {
+    key: "star",
+    label: "Étoile",
+    render: (c) => (
+      <svg width="32" height="32" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="50,3 61,38 98,38 68,59 79,95 50,73 21,95 32,59 2,38 39,38" fill={c} />
+      </svg>
+    ),
+  },
+  {
+    key: "line",
+    label: "Ligne",
+    render: (c) => (
+      <svg width="32" height="32" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="2" y1="50" x2="98" y2="50" stroke={c} strokeWidth="8" />
+      </svg>
+    ),
+  },
+];
+
+function renderShapeContent(el: CanvasElement) {
+  switch (el.type) {
+    case "rect":
+      return <div style={{ width: "100%", height: "100%", background: el.color }} />;
+    case "circle":
+      return <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: el.color }} />;
+    case "triangle":
+      return (
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polygon points="50,2 98,98 2,98" fill={el.color} />
+        </svg>
+      );
+    case "star":
+      return (
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polygon points="50,3 61,38 98,38 68,59 79,95 50,73 21,95 32,59 2,38 39,38" fill={el.color} />
+        </svg>
+      );
+    case "line":
+      return (
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="2" y1="50" x2="98" y2="50" stroke={el.color} strokeWidth="6" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+function genId() {
+  return `el-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export default function HostScreen() {
+  const [zoom, setZoom] = useState(63);
+
+  const [elements, setElements] = useState<CanvasElement[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<string>("modeles");
+  const [canvasBg, setCanvasBg] = useState("#ffffff");
+  const [currentColor, setCurrentColor] = useState("#7c3aed");
+  const [undoStack, setUndoStack] = useState<Array<{elements: CanvasElement[], canvasBg: string}>>([]);
+  const [redoStack, setRedoStack] = useState<Array<{elements: CanvasElement[], canvasBg: string}>>([]);
+  const clipboard = useRef<CanvasElement | null>(null);
+
+  function saveState() {
+    setUndoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
+    setRedoStack([]);
+  }
+
+  const setCanvasBgWithSave = (color: string) => {
+    saveState();
+    setCanvasBg(color);
+  };
+
+  function undo() {
+    if (undoStack.length === 0) return;
+    const last = undoStack[undoStack.length - 1];
+    setRedoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
+    setUndoStack((prev) => prev.slice(0, -1));
+    setElements(last.elements);
+    setCanvasBg(last.canvasBg);
+    setSelectedId(null);
+    setEditingId(null);
+  }
+
+  function redo() {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
+    setRedoStack((prev) => prev.slice(0, -1));
+    setElements(next.elements);
+    setCanvasBg(next.canvasBg);
+    setSelectedId(null);
+    setEditingId(null);
+  }
+
+  function copySelected() {
+    if (!selectedId) return;
+    const el = elements.find((el) => el.id === selectedId);
+    if (!el) return;
+    clipboard.current = { ...el };
+  }
+
+  function pasteSelected() {
+    if (!clipboard.current) return;
+    saveState();
+    const newId = genId();
+    const newEl = {
+      ...clipboard.current,
+      id: newId,
+      x: clipboard.current.x + 20,
+      y: clipboard.current.y + 20,
+    };
+    setElements((prev) => [...prev, newEl]);
+    setSelectedId(newId);
+  }
+
+  function duplicateSelected() {
+    if (!selectedId) return;
+    saveState();
+    const el = elements.find((el) => el.id === selectedId);
+    if (!el) return;
+    const newId = genId();
+    const newEl = {
+      ...el,
+      id: newId,
+      x: el.x + 20,
+      y: el.y + 20,
+    };
+    setElements((prev) => [...prev, newEl]);
+    setSelectedId(newId);
+  }
+
+  function bringForward() {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) => {
+      const idx = prev.findIndex((el) => el.id === selectedId);
+      if (idx === prev.length - 1) return prev;
+      const newElements = [...prev];
+      const [moved] = newElements.splice(idx, 1);
+      newElements.splice(idx + 1, 0, moved);
+      return newElements;
+    });
+  }
+
+  function sendBackward() {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) => {
+      const idx = prev.findIndex((el) => el.id === selectedId);
+      if (idx === 0) return prev;
+      const newElements = [...prev];
+      const [moved] = newElements.splice(idx, 1);
+      newElements.splice(idx - 1, 0, moved);
+      return newElements;
+    });
+  }
+
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedEl = elements.find((el) => el.id === selectedId) ?? null;
+
+  const railIconColor = (active: boolean) => (active ? "#00838c" : "#3d3f44");
+
+  function centerPos(w: number, h: number) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const cw = rect?.width ?? 600;
+    const ch = rect?.height ?? 340;
+    return { x: cw / 2 - w / 2, y: ch / 2 - h / 2 };
+  }
+
+  function addElement(partial: Omit<CanvasElement, "id">) {
+    saveState();
+    const id = genId();
+    const newElement: CanvasElement = {
+      id,
+      ...partial,
+      rotation: 0,
+      opacity: 100,
+      fontFamily: undefined,
+      textAlign: undefined,
+    };
+    setElements((prev) => [...prev, newElement]);
+    setSelectedId(id);
+    setEditingId(null);
+  }
+
+  function addText(fontSize: number, bold: boolean, label: string) {
+    const w = fontSize >= 40 ? 380 : fontSize >= 24 ? 300 : 220;
+    const h = fontSize + 24;
+    const { x, y } = centerPos(w, h);
+    addElement({ type: "text", x, y, w, h, color: "#0d1216", text: label, fontSize, bold });
+  }
+
+  function addShape(type: ShapeType) {
+    const w = type === "line" ? 160 : 120;
+    const h = type === "line" ? 24 : 120;
+    const { x, y } = centerPos(w, h);
+    addElement({ type, x, y, w, h, color: currentColor });
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const w = 240;
+      const h = 160;
+      const { x, y } = centerPos(w, h);
+      addElement({ type: "image", x, y, w, h, color: "#000", src: String(reader.result) });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function handleElementMouseDown(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    if (editingId === id) return;
+    saveState();
+    setSelectedId(id);
+    const el = elements.find((it) => it.id === id);
+    if (!el) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startElX = el.x;
+    const startElY = el.y;
+    function onMove(ev: MouseEvent) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      setElements((prev) => prev.map((p) => (p.id === id ? { ...p, x: startElX + dx, y: startElY + dy } : p)));
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function handleResizeMouseDown(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    const el = elements.find((it) => it.id === id);
+    if (!el) return;
+    saveState();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = el.w;
+    const startH = el.h;
+    function onMove(ev: MouseEvent) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      setElements((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, w: Math.max(20, startW + dx), h: Math.max(20, startH + dy) } : p))
+      );
+    }
+    function onUp() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function handleTextDoubleClick(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    setSelectedId(id);
+    setEditingId(id);
+  }
+
+  function handleTextBlur(e: React.FocusEvent<HTMLDivElement>, id: string) {
+    if (!selectedId) return; // safety, but should be selected
+    saveState();
+    const text = e.currentTarget.textContent ?? "";
+    setElements((prev) => prev.map((p) => (p.id === id ? { ...p, text } : p)));
+    setEditingId(null);
+  }
+
+  function applyColorToSelected(color: string) {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) => prev.map((p) => (p.id === selectedId ? { ...p, color } : p)));
+  }
+
+  function bumpFontSize(delta: number) {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) =>
+      prev.map((p) => (p.id === selectedId && p.type === "text" ? { ...p, fontSize: Math.max(8, (p.fontSize ?? 16) + delta) } : p))
+    );
+  }
+
+  function toggleBold() {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) => prev.map((p) => (p.id === selectedId && p.type === "text" ? { ...p, bold: !p.bold } : p)));
+  }
+
+  function deleteSelected() {
+    if (!selectedId) return;
+    saveState();
+    setElements((prev) => prev.filter((p) => p.id !== selectedId));
+    setSelectedId(null);
+  }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // Copy: Ctrl+C
+      if (e.ctrlKey && e.key === "c" && !e.shiftKey && !editingId) {
+        e.preventDefault();
+        copySelected();
+        return;
+      }
+      // Paste: Ctrl+V
+      if (e.ctrlKey && e.key === "v" && !e.shiftKey && !editingId) {
+        e.preventDefault();
+        pasteSelected();
+        return;
+      }
+      // Duplicate: Ctrl+D
+      if (e.ctrlKey && e.key === "d" && !e.shiftKey && !editingId) {
+        e.preventDefault();
+        duplicateSelected();
+        return;
+      }
+      // Arrow keys: move selected element
+      if (selectedId && !editingId) {
+        const step = e.shiftKey ? 10 : 1;
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          saveState();
+          setElements((prev) =>
+            prev.map((p) =>
+              p.id === selectedId ? { ...p, x: p.x - step } : p
+            )
+          );
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          saveState();
+          setElements((prev) =>
+            prev.map((p) =>
+              p.id === selectedId ? { ...p, x: p.x + step } : p
+            )
+          );
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          saveState();
+          setElements((prev) =>
+            prev.map((p) =>
+              p.id === selectedId ? { ...p, y: p.y - step } : p
+            )
+          );
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          saveState();
+          setElements((prev) =>
+            prev.map((p) =>
+              p.id === selectedId ? { ...p, y: p.y + step } : p
+            )
+          );
+          return;
+        }
+      }
+      // Undo: Ctrl+Z
+      if (e.ctrlKey && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if (e.ctrlKey && e.key === "y") {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === "Z") {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      // Delete
+      if (selectedId && !editingId && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        deleteSelected();
+        return;
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedId, editingId, undoStack, redoStack, elements, canvasBg]);
 
   return (
     <div
@@ -229,6 +661,10 @@ export default function HostScreen() {
         >
           {Ic.pencil("#0d1216")} Retouche {Ic.chevron("#0d1216")}
         </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={undo} style={btnGhost}>↶</button>
+          <button onClick={redo} style={btnGhost}>↷</button>
+        </div>
 
         {/* badge autosave + Nouveau */}
         <div style={{ position: "relative", marginLeft: 2 }}>
@@ -340,11 +776,12 @@ export default function HostScreen() {
           }}
         >
           {railItems.map((it, i) =>
-            it.divider ? (
+            "divider" in it ? (
               <div key={i} style={{ width: 40, height: 1, background: "#ececec", margin: "8px 0" }} />
             ) : (
               <div
                 key={it.key}
+                onClick={() => setPanel(it.key)}
                 style={{
                   width: "100%",
                   padding: "9px 0",
@@ -353,12 +790,12 @@ export default function HostScreen() {
                   alignItems: "center",
                   gap: 4,
                   cursor: "pointer",
-                  color: railIconColor(it.active),
-                  background: it.active ? "#f0fbfc" : "transparent",
+                  color: railIconColor(panel === it.key),
+                  background: panel === it.key ? "#f0fbfc" : "transparent",
                 }}
               >
-                {it.icon!(railIconColor(it.active))}
-                <span style={{ fontSize: 11, fontWeight: it.active ? 700 : 500 }}>{it.label}</span>
+                {it.icon(railIconColor(panel === it.key))}
+                <span style={{ fontSize: 11, fontWeight: panel === it.key ? 700 : 500 }}>{it.label}</span>
               </div>
             )
           )}
@@ -377,18 +814,148 @@ export default function HostScreen() {
             }}
           >
             <div
+              ref={canvasRef}
+              onMouseDown={() => setSelectedId(null)}
               style={{
                 width: "62%",
                 aspectRatio: "16 / 9",
                 maxHeight: "82%",
-                background: "#fff",
+                background: canvasBg,
                 borderRadius: 4,
                 boxShadow: "0 1px 6px rgba(0,0,0,.12)",
+                position: "relative",
+                overflow: "hidden",
               }}
-            />
+            >
+              {elements.map((el) => {
+                const isSelected = selectedId === el.id;
+                const isEditing = editingId === el.id;
+                return (
+                  <div
+                    key={el.id}
+                    onMouseDown={(e) => handleElementMouseDown(e, el.id)}
+                    onDoubleClick={el.type === "text" ? (e) => handleTextDoubleClick(e, el.id) : undefined}
+                    style={{
+                      position: "absolute",
+                      left: el.x,
+                      top: el.y,
+                      width: el.w,
+                      height: el.h,
+                      outline: isSelected ? "2px solid #7c3aed" : "none",
+                      outlineOffset: 2,
+                      cursor: isEditing ? "text" : "move",
+                    }}
+                  >
+                    {el.type === "text" ? (
+                      <div
+                        ref={(node) => {
+                          if (node && isEditing) node.focus();
+                        }}
+                        contentEditable={isEditing}
+                        suppressContentEditableWarning
+                        onBlur={(e) => handleTextBlur(e, el.id)}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          fontSize: el.fontSize,
+                          fontWeight: el.bold ? 700 : 400,
+                          color: el.color,
+                          outline: "none",
+                          overflow: "hidden",
+                          userSelect: isEditing ? "text" : "none",
+                          cursor: isEditing ? "text" : "move",
+                        }}
+                      >
+                        {el.text}
+                      </div>
+                    ) : el.type === "image" ? (
+                      <img
+                        src={el.src}
+                        alt=""
+                        draggable={false}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
+                      />
+                    ) : (
+                      renderShapeContent(el)
+                    )}
+
+                    {isSelected && !isEditing && (
+                      <div
+                        onMouseDown={(e) => handleResizeMouseDown(e, el.id)}
+                        style={{
+                          position: "absolute",
+                          right: -6,
+                          bottom: -6,
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          background: "#7c3aed",
+                          border: "2px solid #fff",
+                          cursor: "nwse-resize",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* panneau modèles flottant */}
+          {/* barre flottante de sélection */}
+          {selectedEl && !editingId && (
+            <div
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                position: "absolute",
+                top: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                background: "#fff",
+                borderRadius: 10,
+                boxShadow: "0 4px 18px rgba(0,0,0,.18)",
+                padding: "8px 12px",
+                zIndex: 5,
+              }}
+            >
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => applyColorToSelected(c)}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: c,
+                    border: selectedEl.color === c ? "2px solid #0d1216" : "1px solid #d9dde3",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                />
+              ))}
+
+              {selectedEl.type === "text" && (
+                <>
+                  <div style={{ width: 1, height: 22, background: "#ececec" }} />
+                  <button onClick={() => bumpFontSize(-2)} style={toolbarBtn}>A−</button>
+                  <button onClick={() => bumpFontSize(2)} style={toolbarBtn}>A+</button>
+                  <button
+                    onClick={toggleBold}
+                    style={{ ...toolbarBtn, fontWeight: 700, background: selectedEl.bold ? "#f0fbfc" : "#fff" }}
+                  >
+                    G
+                  </button>
+                </>
+              )}
+
+              <div style={{ width: 1, height: 22, background: "#ececec" }} />
+              <button onClick={deleteSelected} style={toolbarBtn}>🗑</button>
+            </div>
+          )}
+
+          {/* panneau flottant (contenu dépend de "panel") */}
           <div
             style={{
               position: "absolute",
@@ -404,216 +971,317 @@ export default function HostScreen() {
               overflow: "hidden",
             }}
           >
-            {/* recherche */}
-            <div style={{ padding: "14px 14px 10px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: "1px solid #d9dde3",
-                  borderRadius: 9,
-                  padding: "9px 12px",
-                }}
-              >
-                <span style={{ color: "#6b7280", fontSize: 20, lineHeight: 0 }}>+</span>
-                <span style={{ flex: 1, color: "#9aa3ad", fontSize: 13.5 }}>
-                  Décrivez votre design de rêve
-                </span>
-                {Ic.mic("#5b6470")}
-              </div>
-
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                <button
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    border: "1px solid #d9dde3",
-                    background: "#fff",
-                    borderRadius: 9,
-                    padding: "9px 0",
-                    fontWeight: 600,
-                    fontSize: 13.5,
-                    cursor: "pointer",
-                  }}
-                >
-                  {Ic.spark("#0d1216")} Générer
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    border: "none",
-                    background: "#7c3aed",
-                    color: "#fff",
-                    borderRadius: 9,
-                    padding: "9px 0",
-                    fontWeight: 600,
-                    fontSize: 13.5,
-                    cursor: "pointer",
-                  }}
-                >
-                  Rechercher
-                </button>
-              </div>
-            </div>
-
-            {/* liste scrollable */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
-              <div style={sectionTitle}>Utilisés récemment</div>
-              {/* carte MAPS */}
-              <div
-                style={{
-                  height: 96,
-                  borderRadius: 8,
-                  marginBottom: 16,
-                  background: "#e9eef2",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "Georgia, serif",
-                    fontWeight: 800,
-                    fontSize: 16,
-                    color: "#3a4a78",
-                    letterSpacing: 1,
-                  }}
-                >
-                  A GAME ABOUT
-                  <br />
-                  MAPS
-                </span>
-                <svg
-                  width="42"
-                  height="42"
-                  viewBox="0 0 24 24"
-                  style={{ position: "absolute", right: 26, top: 22 }}
-                >
-                  <path
-                    d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"
-                    fill="#e23a3a"
-                  />
-                  <circle cx="12" cy="9" r="2.6" fill="#fff" />
-                </svg>
-              </div>
-
-              <div style={sectionTitle}>Tous les résultats</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {results.map((r, i) => (
+            {panel === "modeles" && (
+              <>
+                {/* recherche */}
+                <div style={{ padding: "14px 14px 10px" }}>
                   <div
-                    key={i}
                     style={{
-                      height: 78,
-                      borderRadius: 8,
-                      background: r.bg,
-                      position: "relative",
-                      overflow: "hidden",
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
-                      border: r.bg.startsWith("#ee") || r.bg.startsWith("#f4") ? "1px solid #e5e8ee" : "none",
+                      gap: 8,
+                      border: "1px solid #d9dde3",
+                      borderRadius: 9,
+                      padding: "9px 12px",
                     }}
                   >
-                    {r.euro && (
-                      <div style={{ display: "flex", flexWrap: "wrap", width: 34, justifyContent: "center", marginBottom: 4 }}>
-                        {Array.from({ length: 10 }).map((_, k) => (
-                          <span key={k} style={{ color: "#f5d000", fontSize: 7 }}>★</span>
-                        ))}
-                      </div>
-                    )}
-                    {r.info && (
-                      <div style={{ width: "70%" }}>
-                        {[0, 1, 2, 3].map((k) => (
-                          <div key={k} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3a4f8a" }} />
-                            <span style={{ flex: 1, height: 4, background: "#cdd5e4", borderRadius: 2 }} />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {r.leaf && (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                        <path d="M12 2c-1 6-5 7-5 12a5 5 0 0010 0c0-5-4-6-5-12z" />
-                      </svg>
-                    )}
-                    {r.t && (
-                      <span
-                        style={{
-                          color: r.dark ? "#1b2a52" : "#fff",
-                          fontWeight: 800,
-                          fontSize: r.t.length > 12 ? 10 : 13,
-                          textAlign: "center",
-                          lineHeight: 1.15,
-                          padding: "0 6px",
-                          textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
-                        }}
-                      >
-                        {r.t}
-                      </span>
-                    )}
-                    {r.sub && (
-                      <span
-                        style={{
-                          color: r.dark ? "#5b6470" : "rgba(255,255,255,.9)",
-                          fontSize: 8,
-                          marginTop: 2,
-                          textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
-                        }}
-                      >
-                        {r.sub}
-                      </span>
-                    )}
-                    {r.accent && (
-                      <span style={{ width: 30, height: 5, background: r.accent, marginTop: 3 }} />
-                    )}
-                    {r.play && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: 6,
-                          left: 6,
-                          width: 22,
-                          height: 22,
-                          borderRadius: "50%",
-                          background: "rgba(255,255,255,.92)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {Ic.play()}
-                      </div>
-                    )}
-                    {r.crown && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: 6,
-                          right: 6,
-                          width: 20,
-                          height: 20,
-                          borderRadius: "50%",
-                          background: "#7c3aed",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {Ic.crown()}
-                      </div>
-                    )}
+                    <span style={{ color: "#6b7280", fontSize: 20, lineHeight: 0 }}>+</span>
+                    <span style={{ flex: 1, color: "#9aa3ad", fontSize: 13.5 }}>
+                      Décrivez votre design de rêve
+                    </span>
+                    {Ic.mic("#5b6470")}
                   </div>
-                ))}
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                    <button
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        border: "1px solid #d9dde3",
+                        background: "#fff",
+                        borderRadius: 9,
+                        padding: "9px 0",
+                        fontWeight: 600,
+                        fontSize: 13.5,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {Ic.spark("#0d1216")} Générer
+                    </button>
+                    <button
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        background: "#7c3aed",
+                        color: "#fff",
+                        borderRadius: 9,
+                        padding: "9px 0",
+                        fontWeight: 600,
+                        fontSize: 13.5,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Rechercher
+                    </button>
+                  </div>
+                </div>
+
+                {/* liste scrollable */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+                  <div style={sectionTitle}>Utilisés récemment</div>
+                  {/* carte MAPS */}
+                  <div
+                    style={{
+                      height: 96,
+                      borderRadius: 8,
+                      marginBottom: 16,
+                      background: "#e9eef2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "Georgia, serif",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#3a4a78",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      A GAME ABOUT
+                      <br />
+                      MAPS
+                    </span>
+                    <svg
+                      width="42"
+                      height="42"
+                      viewBox="0 0 24 24"
+                      style={{ position: "absolute", right: 26, top: 22 }}
+                    >
+                      <path
+                        d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"
+                        fill="#e23a3a"
+                      />
+                      <circle cx="12" cy="9" r="2.6" fill="#fff" />
+                    </svg>
+                  </div>
+
+                  <div style={sectionTitle}>Tous les résultats</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {results.map((r, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          height: 78,
+                          borderRadius: 8,
+                          background: r.bg,
+                          position: "relative",
+                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: r.bg.startsWith("#ee") || r.bg.startsWith("#f4") ? "1px solid #e5e8ee" : "none",
+                        }}
+                      >
+                        {r.euro && (
+                          <div style={{ display: "flex", flexWrap: "wrap", width: 34, justifyContent: "center", marginBottom: 4 }}>
+                            {Array.from({ length: 10 }).map((_, k) => (
+                              <span key={k} style={{ color: "#f5d000", fontSize: 7 }}>★</span>
+                            ))}
+                          </div>
+                        )}
+                        {r.info && (
+                          <div style={{ width: "70%" }}>
+                            {[0, 1, 2, 3].map((k) => (
+                              <div key={k} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3a4f8a" }} />
+                                <span style={{ flex: 1, height: 4, background: "#cdd5e4", borderRadius: 2 }} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {r.leaf && (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                            <path d="M12 2c-1 6-5 7-5 12a5 5 0 0010 0c0-5-4-6-5-12z" />
+                          </svg>
+                        )}
+                        {r.t && (
+                          <span
+                            style={{
+                              color: r.dark ? "#1b2a52" : "#fff",
+                              fontWeight: 800,
+                              fontSize: r.t.length > 12 ? 10 : 13,
+                              textAlign: "center",
+                              lineHeight: 1.15,
+                              padding: "0 6px",
+                              textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
+                            }}
+                          >
+                            {r.t}
+                          </span>
+                        )}
+                        {r.sub && (
+                          <span
+                            style={{
+                              color: r.dark ? "#5b6470" : "rgba(255,255,255,.9)",
+                              fontSize: 8,
+                              marginTop: 2,
+                              textShadow: r.light ? "0 1px 2px rgba(0,0,0,.4)" : "none",
+                            }}
+                          >
+                            {r.sub}
+                          </span>
+                        )}
+                        {r.accent && (
+                          <span style={{ width: 30, height: 5, background: r.accent, marginTop: 3 }} />
+                        )}
+                        {r.play && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: 6,
+                              left: 6,
+                              width: 22,
+                              height: 22,
+                              borderRadius: "50%",
+                              background: "rgba(255,255,255,.92)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {Ic.play()}
+                          </div>
+                        )}
+                        {r.crown && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: 6,
+                              right: 6,
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              background: "#7c3aed",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {Ic.crown()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {panel === "texte" && (
+              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={sectionTitle}>Ajouter du texte</div>
+                <button style={textPanelBtn} onClick={() => addText(40, true, "Ajoutez un titre")}>
+                  <span style={{ fontSize: 22, fontWeight: 700 }}>Ajouter un titre</span>
+                </button>
+                <button style={textPanelBtn} onClick={() => addText(24, false, "Ajoutez un sous-titre")}>
+                  <span style={{ fontSize: 16, fontWeight: 600 }}>Ajouter un sous-titre</span>
+                </button>
+                <button style={textPanelBtn} onClick={() => addText(16, false, "Ajoutez du texte")}>
+                  <span style={{ fontSize: 13 }}>Ajouter du texte</span>
+                </button>
               </div>
-            </div>
+            )}
+
+            {panel === "elements" && (
+              <div style={{ padding: 16 }}>
+                <div style={sectionTitle}>Formes</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 18 }}>
+                  {shapeDefs.map((s) => (
+                    <button key={s.key} onClick={() => addShape(s.key)} style={shapeBtn} title={s.label}>
+                      {s.render(currentColor)}
+                    </button>
+                  ))}
+                </div>
+                <div style={sectionTitle}>Couleurs</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => {
+                        setCurrentColor(c);
+                        applyColorToSelected(c);
+                      }}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: c,
+                        border: currentColor === c ? "2px solid #0d1216" : "1px solid #d9dde3",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {panel === "importer" && (
+              <div style={{ padding: 16 }}>
+                <div style={sectionTitle}>Importer un média</div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ ...btnGhost, width: "100%", justifyContent: "center" }}
+                >
+                  {Ic.upload("#0d1216")} Choisir une image
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+              </div>
+            )}
+
+            {panel === "bg" && (
+              <div style={{ padding: 16 }}>
+                <div style={sectionTitle}>Arrière-plan</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {["#ffffff", ...COLORS].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCanvasBgWithSave(c)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: c,
+                        border: canvasBg === c ? "2px solid #0d1216" : "1px solid #d9dde3",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!["modeles", "texte", "elements", "importer", "bg"].includes(panel) && (
+              <div style={{ padding: 24, color: "#9aa3ad", fontSize: 13.5 }}>
+                Bientôt disponible.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -727,5 +1395,35 @@ const footItem = {
   display: "flex",
   alignItems: "center",
   gap: 6,
+  cursor: "pointer",
+};
+
+const toolbarBtn: React.CSSProperties = {
+  border: "1px solid #d9dde3",
+  background: "#fff",
+  borderRadius: 6,
+  padding: "4px 9px",
+  fontSize: 13,
+  cursor: "pointer",
+  color: "#0d1216",
+};
+
+const shapeBtn: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  height: 64,
+  border: "1px solid #d9dde3",
+  borderRadius: 9,
+  background: "#fff",
+  cursor: "pointer",
+};
+
+const textPanelBtn: React.CSSProperties = {
+  textAlign: "left",
+  border: "1px solid #d9dde3",
+  borderRadius: 9,
+  padding: "14px 12px",
+  background: "#fff",
   cursor: "pointer",
 };
