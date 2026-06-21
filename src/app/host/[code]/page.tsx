@@ -2,6 +2,8 @@
 // Pour ton projet : ajoute  "use client";  tout en haut, puis enregistre ce
 // fichier sous  src/app/host/[code]/page.tsx
 import React, { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 /* ---------- petites icônes SVG (pas de lib externe) ---------- */
 const Ic = {
@@ -255,6 +257,9 @@ function genId() {
 }
 
 export default function HostScreen() {
+  const params = useParams<{ code: string }>();
+  const code = (params?.code ?? "").toUpperCase();
+
   const [zoom, setZoom] = useState(63);
 
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -266,6 +271,70 @@ export default function HostScreen() {
   const [undoStack, setUndoStack] = useState<Array<{elements: CanvasElement[], canvasBg: string}>>([]);
   const [redoStack, setRedoStack] = useState<Array<{elements: CanvasElement[], canvasBg: string}>>([]);
   const clipboard = useRef<CanvasElement | null>(null);
+
+  const [gameId, setGameId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "loading" | "error">("idle");
+
+  // Trouve la partie via son code, puis charge le plateau sauvegardé (si présent)
+  useEffect(() => {
+    if (!code) return;
+    let active = true;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("games")
+        .select("id, board")
+        .eq("code", code)
+        .maybeSingle();
+
+      if (!active) return;
+      if (error || !data) return;
+
+      setGameId(data.id);
+      const board = data.board as { elements?: CanvasElement[]; canvasBg?: string } | null;
+      if (board) {
+        if (board.elements) setElements(board.elements);
+        if (board.canvasBg) setCanvasBg(board.canvasBg);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [code]);
+
+  async function handleSave() {
+    if (!gameId) return;
+    setSaveStatus("saving");
+    const { error } = await supabase
+      .from("games")
+      .update({ board: { elements, canvasBg } })
+      .eq("id", gameId);
+    setSaveStatus(error ? "error" : "saved");
+  }
+
+  async function handleLoad() {
+    if (!gameId) return;
+    setSaveStatus("loading");
+    const { data, error } = await supabase
+      .from("games")
+      .select("board")
+      .eq("id", gameId)
+      .maybeSingle();
+
+    if (error || !data) {
+      setSaveStatus("error");
+      return;
+    }
+
+    const board = data.board as { elements?: CanvasElement[]; canvasBg?: string } | null;
+    saveState();
+    setElements(board?.elements ?? []);
+    setCanvasBg(board?.canvasBg ?? "#ffffff");
+    setSelectedId(null);
+    setEditingId(null);
+    setSaveStatus("saved");
+  }
 
   function saveState() {
     setUndoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
@@ -743,7 +812,13 @@ export default function HostScreen() {
           Présenter {Ic.chevron("#7c3aed")}
         </span>
 
+        <button onClick={handleLoad} disabled={!gameId} style={btnGhost}>
+          Charger
+        </button>
+
         <button
+          onClick={handleSave}
+          disabled={!gameId || saveStatus === "saving"}
           style={{
             background: "#0d1117",
             color: "#fff",
@@ -752,10 +827,11 @@ export default function HostScreen() {
             padding: "8px 18px",
             fontWeight: 600,
             fontSize: 15,
-            cursor: "pointer",
+            cursor: gameId ? "pointer" : "not-allowed",
+            opacity: gameId ? 1 : 0.5,
           }}
         >
-          Partager
+          {saveStatus === "saving" ? "Enregistrement…" : saveStatus === "saved" ? "Enregistré ✓" : "Enregistrer"}
         </button>
       </div>
 
