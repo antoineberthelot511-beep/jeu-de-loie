@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useRealtimePlayers } from "@/hooks/useRealtimePlayers";
 import type { Player } from "@/types/game";
 import { toPng } from "html-to-image";
+import { defaultAssets, type DefaultAsset } from "@/data/assets";
 
 /* ---------- petites icônes SVG (pas de lib externe) ---------- */
 const Ic = {
@@ -601,6 +602,13 @@ export default function HostScreen() {
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  }
+
+  function addDefaultAsset(asset: DefaultAsset) {
+    const w = 160;
+    const h = 160;
+    const { x, y } = centerPos(w, h);
+    addElement({ type: "image", x, y, w, h, color: "#000", src: asset.src });
   }
 
   function handleElementMouseDown(e: React.MouseEvent, id: string) {
@@ -1709,6 +1717,26 @@ export default function HostScreen() {
                   style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
+
+                <div style={{ ...sectionTitle, marginTop: 18 }}>Bibliothèque</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, opacity: locked ? 0.5 : 1 }}>
+                  {defaultAssets.map((asset) => (
+                    <button
+                      key={asset.src}
+                      onClick={() => addDefaultAsset(asset)}
+                      disabled={locked}
+                      style={{ ...shapeBtn, padding: 8, cursor: locked ? "not-allowed" : "pointer" }}
+                      title={asset.name}
+                    >
+                      <img
+                        src={asset.src}
+                        alt={asset.name}
+                        draggable={false}
+                        style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
