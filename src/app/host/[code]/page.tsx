@@ -4,6 +4,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useRealtimePlayers } from "@/hooks/useRealtimePlayers";
+import type { Player } from "@/types/game";
 
 /* ---------- petites icônes SVG (pas de lib externe) ---------- */
 const Ic = {
@@ -132,12 +134,19 @@ const Ic = {
       <circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 013.5 2c0 1.5-2 1.5-2 3M12 17h.01" />
     </svg>
   ),
+  players: (c = "currentColor") => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2">
+      <circle cx="9" cy="8" r="3" /><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5" />
+      <circle cx="17" cy="8" r="2.4" /><path d="M16 14c2.6.3 4 1.9 4 5" />
+    </svg>
+  ),
 };
 
 /* ---------- rail gauche ---------- */
 const railItems = [
   { key: "modeles", label: "Modèles", icon: Ic.grid },
   { key: "elements", label: "Éléments", icon: Ic.shapes },
+  { key: "joueurs", label: "Joueurs", icon: Ic.players },
   { key: "texte", label: "Texte", icon: Ic.text },
   { key: "marque", label: "Marque", icon: Ic.brand },
   { key: "importer", label: "Importer", icon: Ic.upload },
@@ -168,7 +177,7 @@ const results = [
 
 /* ---------- éditeur : types & données ---------- */
 type ShapeType = "rect" | "circle" | "triangle" | "star" | "line";
-type ElementType = "text" | "image" | ShapeType;
+type ElementType = "text" | "image" | "pawn" | ShapeType;
 
 interface CanvasElement {
   id: string;
@@ -187,9 +196,13 @@ interface CanvasElement {
   opacity?: number; // 0-100
   fontFamily?: string; // for text
   textAlign?: 'left' | 'center' | 'right'; // for text
+  // Pion joueur
+  playerId?: string; // id du joueur représenté (type === "pawn")
+  playerName?: string; // pseudo affiché sous le pion
 }
 
 const COLORS = ["#7c3aed", "#e0245e", "#f0a500", "#16a34a", "#0ea5e9", "#0d1216"];
+const PAWN_COLORS = ["#7c3aed", "#e0245e", "#f0a500", "#16a34a", "#0ea5e9", "#d946ef", "#0d1216", "#0891b2"];
 
 const shapeDefs: { key: ShapeType; label: string; render: (c: string) => React.ReactNode }[] = [
   { key: "rect", label: "Rectangle", render: (c) => <div style={{ width: 32, height: 32, background: c }} /> },
@@ -336,6 +349,8 @@ export default function HostScreen() {
     setSaveStatus("saved");
   }
 
+  const players = useRealtimePlayers(gameId);
+
   function saveState() {
     setUndoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
     setRedoStack([]);
@@ -473,6 +488,28 @@ export default function HostScreen() {
     const h = type === "line" ? 24 : 120;
     const { x, y } = centerPos(w, h);
     addElement({ type, x, y, w, h, color: currentColor });
+  }
+
+  function addPlayerPawn(player: Player, index = 0) {
+    if (elements.some((el) => el.type === "pawn" && el.playerId === player.id)) return;
+    const w = 64;
+    const h = 64;
+    const { x, y } = centerPos(w, h);
+    addElement({
+      type: "pawn",
+      x: x + index * 20,
+      y: y + index * 20,
+      w,
+      h,
+      color: PAWN_COLORS[index % PAWN_COLORS.length],
+      src: player.image || undefined,
+      playerId: player.id,
+      playerName: player.name,
+    });
+  }
+
+  function addAllPlayerPawns() {
+    players.forEach((player, i) => addPlayerPawn(player, i));
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -951,6 +988,56 @@ export default function HostScreen() {
                         draggable={false}
                         style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
                       />
+                    ) : el.type === "pawn" ? (
+                      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            borderRadius: "50%",
+                            overflow: "hidden",
+                            border: "3px solid #fff",
+                            boxShadow: "0 2px 6px rgba(0,0,0,.35)",
+                            background: el.color,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {el.src ? (
+                            <img
+                              src={el.src}
+                              alt=""
+                              draggable={false}
+                              style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }}
+                            />
+                          ) : (
+                            <span style={{ color: "#fff", fontWeight: 700, fontSize: el.h * 0.4, pointerEvents: "none" }}>
+                              {(el.playerName ?? "?").slice(0, 1).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            marginTop: 3,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#0d1216",
+                            background: "#fff",
+                            padding: "1px 7px",
+                            borderRadius: 6,
+                            whiteSpace: "nowrap",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          {el.playerName}
+                        </span>
+                      </div>
                     ) : (
                       renderShapeContent(el)
                     )}
@@ -1311,6 +1398,87 @@ export default function HostScreen() {
               </div>
             )}
 
+            {panel === "joueurs" && (
+              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={sectionTitle}>Pions joueurs</div>
+                <button
+                  onClick={addAllPlayerPawns}
+                  disabled={players.length === 0}
+                  style={{
+                    ...btnGhost,
+                    width: "100%",
+                    justifyContent: "center",
+                    opacity: players.length === 0 ? 0.5 : 1,
+                    cursor: players.length === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {Ic.players("#0d1216")} Ajouter tous les pions
+                </button>
+
+                {players.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "#9aa3ad" }}>Aucun joueur connecté pour l’instant.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {players.map((p, i) => {
+                      const placed = elements.some((el) => el.type === "pawn" && el.playerId === p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "6px 8px",
+                            borderRadius: 8,
+                            border: "1px solid #e3e6ea",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              overflow: "hidden",
+                              flexShrink: 0,
+                              background: PAWN_COLORS[i % PAWN_COLORS.length],
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontWeight: 700,
+                              fontSize: 12,
+                            }}
+                          >
+                            {p.image ? (
+                              <img src={p.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              p.name.slice(0, 1).toUpperCase()
+                            )}
+                          </div>
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {p.name}
+                          </span>
+                          <button
+                            onClick={() => addPlayerPawn(p, i)}
+                            disabled={placed}
+                            style={{
+                              ...btnGhost,
+                              padding: "5px 10px",
+                              fontSize: 12,
+                              opacity: placed ? 0.5 : 1,
+                              cursor: placed ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            {placed ? "Ajouté" : "+ Ajouter"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {panel === "importer" && (
               <div style={{ padding: 16 }}>
                 <div style={sectionTitle}>Importer un média</div>
@@ -1353,7 +1521,7 @@ export default function HostScreen() {
               </div>
             )}
 
-            {!["modeles", "texte", "elements", "importer", "bg"].includes(panel) && (
+            {!["modeles", "texte", "elements", "joueurs", "importer", "bg"].includes(panel) && (
               <div style={{ padding: 24, color: "#9aa3ad", fontSize: 13.5 }}>
                 Bientôt disponible.
               </div>

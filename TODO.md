@@ -26,7 +26,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*3. Outil "pion joueur"\*\*
+\- \[x] \*\*3. Outil "pion joueur"\*\*
 
 &#x20; - Fichiers : src/app/host/\[code]/page.tsx
 
