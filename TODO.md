@@ -42,7 +42,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*5. Mode "jeu" (verrou édition)\*\*
+\- \[x] \*\*5. Mode "jeu" (verrou édition)\*\*
 
 &#x20; - Fichiers : src/app/host/\[code]/page.tsx
 

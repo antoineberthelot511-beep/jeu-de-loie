@@ -285,6 +285,14 @@ export default function HostScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panel, setPanel] = useState<string>("modeles");
+  const [mode, setMode] = useState<"edition" | "jeu">("edition");
+  const locked = mode === "jeu";
+
+  function toggleMode() {
+    setSelectedId(null);
+    setEditingId(null);
+    setMode((m) => (m === "edition" ? "jeu" : "edition"));
+  }
   const [canvasBg, setCanvasBg] = useState("#ffffff");
   const [currentColor, setCurrentColor] = useState("#7c3aed");
   const [undoStack, setUndoStack] = useState<Array<{elements: CanvasElement[], canvasBg: string}>>([]);
@@ -392,12 +400,13 @@ export default function HostScreen() {
   }
 
   const setCanvasBgWithSave = (color: string) => {
+    if (locked) return;
     saveState();
     setCanvasBg(color);
   };
 
   function undo() {
-    if (undoStack.length === 0) return;
+    if (locked || undoStack.length === 0) return;
     const last = undoStack[undoStack.length - 1];
     setRedoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
     setUndoStack((prev) => prev.slice(0, -1));
@@ -408,7 +417,7 @@ export default function HostScreen() {
   }
 
   function redo() {
-    if (redoStack.length === 0) return;
+    if (locked || redoStack.length === 0) return;
     const next = redoStack[redoStack.length - 1];
     setUndoStack((prev) => [...prev, { elements: [...elements], canvasBg }]);
     setRedoStack((prev) => prev.slice(0, -1));
@@ -426,7 +435,7 @@ export default function HostScreen() {
   }
 
   function pasteSelected() {
-    if (!clipboard.current) return;
+    if (locked || !clipboard.current) return;
     saveState();
     const newId = genId();
     const newEl = {
@@ -440,7 +449,7 @@ export default function HostScreen() {
   }
 
   function duplicateSelected() {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     const el = elements.find((el) => el.id === selectedId);
     if (!el) return;
@@ -456,7 +465,7 @@ export default function HostScreen() {
   }
 
   function bringForward() {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) => {
       const idx = prev.findIndex((el) => el.id === selectedId);
@@ -469,7 +478,7 @@ export default function HostScreen() {
   }
 
   function sendBackward() {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) => {
       const idx = prev.findIndex((el) => el.id === selectedId);
@@ -496,6 +505,7 @@ export default function HostScreen() {
   }
 
   function addElement(partial: Omit<CanvasElement, "id">) {
+    if (locked) return;
     saveState();
     const id = genId();
     const newElement: CanvasElement = {
@@ -563,11 +573,13 @@ export default function HostScreen() {
   function handleElementMouseDown(e: React.MouseEvent, id: string) {
     e.stopPropagation();
     if (editingId === id) return;
-    saveState();
-    setSelectedId(id);
     const el = elements.find((it) => it.id === id);
     if (!el) return;
     const isPawn = el.type === "pawn";
+    // En mode Jeu, le plateau est verrouillé : seuls les pions restent déplaçables.
+    if (locked && !isPawn) return;
+    saveState();
+    setSelectedId(id);
     const rect = canvasRef.current?.getBoundingClientRect();
     const cw = rect?.width || 1;
     const ch = rect?.height || 1;
@@ -591,6 +603,7 @@ export default function HostScreen() {
   }
 
   function handleResizeMouseDown(e: React.MouseEvent, id: string) {
+    if (locked) return;
     e.stopPropagation();
     const el = elements.find((it) => it.id === id);
     if (!el) return;
@@ -615,6 +628,7 @@ export default function HostScreen() {
   }
 
   function handleTextDoubleClick(e: React.MouseEvent, id: string) {
+    if (locked) return;
     e.stopPropagation();
     setSelectedId(id);
     setEditingId(id);
@@ -629,13 +643,13 @@ export default function HostScreen() {
   }
 
   function applyColorToSelected(color: string) {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) => prev.map((p) => (p.id === selectedId ? { ...p, color } : p)));
   }
 
   function bumpFontSize(delta: number) {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) =>
       prev.map((p) => (p.id === selectedId && p.type === "text" ? { ...p, fontSize: Math.max(8, (p.fontSize ?? 16) + delta) } : p))
@@ -643,13 +657,13 @@ export default function HostScreen() {
   }
 
   function toggleBold() {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) => prev.map((p) => (p.id === selectedId && p.type === "text" ? { ...p, bold: !p.bold } : p)));
   }
 
   function deleteSelected() {
-    if (!selectedId) return;
+    if (locked || !selectedId) return;
     saveState();
     setElements((prev) => prev.filter((p) => p.id !== selectedId));
     setSelectedId(null);
@@ -745,7 +759,7 @@ export default function HostScreen() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedId, editingId, undoStack, redoStack, elements, canvasBg]);
+  }, [selectedId, editingId, undoStack, redoStack, elements, canvasBg, locked]);
 
   return (
     <div
@@ -808,8 +822,50 @@ export default function HostScreen() {
           {Ic.pencil("#0d1216")} Retouche {Ic.chevron("#0d1216")}
         </span>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={undo} style={btnGhost}>↶</button>
-          <button onClick={redo} style={btnGhost}>↷</button>
+          <button onClick={undo} disabled={locked} style={{ ...btnGhost, opacity: locked ? 0.5 : 1, cursor: locked ? "not-allowed" : "pointer" }}>↶</button>
+          <button onClick={redo} disabled={locked} style={{ ...btnGhost, opacity: locked ? 0.5 : 1, cursor: locked ? "not-allowed" : "pointer" }}>↷</button>
+        </div>
+
+        {/* bascule Édition / Jeu */}
+        <div
+          style={{
+            display: "flex",
+            background: "rgba(255,255,255,.6)",
+            borderRadius: 8,
+            padding: 2,
+            gap: 2,
+          }}
+        >
+          <button
+            onClick={() => mode !== "edition" && toggleMode()}
+            style={{
+              border: "none",
+              borderRadius: 6,
+              padding: "6px 12px",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              background: mode === "edition" ? "#0d1117" : "transparent",
+              color: mode === "edition" ? "#fff" : "#0d1216",
+            }}
+          >
+            Édition
+          </button>
+          <button
+            onClick={() => mode !== "jeu" && toggleMode()}
+            style={{
+              border: "none",
+              borderRadius: 6,
+              padding: "6px 12px",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              background: mode === "jeu" ? "#0d1117" : "transparent",
+              color: mode === "jeu" ? "#fff" : "#0d1216",
+            }}
+          >
+            Jeu
+          </button>
         </div>
 
         {/* badge autosave + Nouveau */}
@@ -956,6 +1012,27 @@ export default function HostScreen() {
 
         {/* zone canvas + panneau flottant */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          {locked && (
+            <div
+              style={{
+                position: "absolute",
+                top: 12,
+                left: 12,
+                zIndex: 4,
+                background: "#0d1117",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12,
+                padding: "6px 12px",
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              🔒 Mode Jeu — plateau verrouillé
+            </div>
+          )}
           {/* canvas (slide blanc) */}
           <div
             style={{
@@ -1105,7 +1182,7 @@ export default function HostScreen() {
           </div>
 
           {/* barre flottante de sélection */}
-          {selectedEl && !editingId && (
+          {selectedEl && !editingId && !locked && (
             <div
               onMouseDown={(e) => e.stopPropagation()}
               style={{
@@ -1390,26 +1467,26 @@ export default function HostScreen() {
             )}
 
             {panel === "texte" && (
-              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, opacity: locked ? 0.5 : 1 }}>
                 <div style={sectionTitle}>Ajouter du texte</div>
-                <button style={textPanelBtn} onClick={() => addText(40, true, "Ajoutez un titre")}>
+                <button style={{ ...textPanelBtn, cursor: locked ? "not-allowed" : "pointer" }} disabled={locked} onClick={() => addText(40, true, "Ajoutez un titre")}>
                   <span style={{ fontSize: 22, fontWeight: 700 }}>Ajouter un titre</span>
                 </button>
-                <button style={textPanelBtn} onClick={() => addText(24, false, "Ajoutez un sous-titre")}>
+                <button style={{ ...textPanelBtn, cursor: locked ? "not-allowed" : "pointer" }} disabled={locked} onClick={() => addText(24, false, "Ajoutez un sous-titre")}>
                   <span style={{ fontSize: 16, fontWeight: 600 }}>Ajouter un sous-titre</span>
                 </button>
-                <button style={textPanelBtn} onClick={() => addText(16, false, "Ajoutez du texte")}>
+                <button style={{ ...textPanelBtn, cursor: locked ? "not-allowed" : "pointer" }} disabled={locked} onClick={() => addText(16, false, "Ajoutez du texte")}>
                   <span style={{ fontSize: 13 }}>Ajouter du texte</span>
                 </button>
               </div>
             )}
 
             {panel === "elements" && (
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: 16, opacity: locked ? 0.5 : 1 }}>
                 <div style={sectionTitle}>Formes</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 18 }}>
                   {shapeDefs.map((s) => (
-                    <button key={s.key} onClick={() => addShape(s.key)} style={shapeBtn} title={s.label}>
+                    <button key={s.key} disabled={locked} onClick={() => addShape(s.key)} style={{ ...shapeBtn, cursor: locked ? "not-allowed" : "pointer" }} title={s.label}>
                       {s.render(currentColor)}
                     </button>
                   ))}
@@ -1441,15 +1518,20 @@ export default function HostScreen() {
             {panel === "joueurs" && (
               <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={sectionTitle}>Pions joueurs</div>
+                {locked && (
+                  <div style={{ fontSize: 13, color: "#9aa3ad" }}>
+                    Mode Jeu : le plateau est verrouillé, seuls les pions déjà placés peuvent être déplacés.
+                  </div>
+                )}
                 <button
                   onClick={addAllPlayerPawns}
-                  disabled={players.length === 0}
+                  disabled={locked || players.length === 0}
                   style={{
                     ...btnGhost,
                     width: "100%",
                     justifyContent: "center",
-                    opacity: players.length === 0 ? 0.5 : 1,
-                    cursor: players.length === 0 ? "not-allowed" : "pointer",
+                    opacity: locked || players.length === 0 ? 0.5 : 1,
+                    cursor: locked || players.length === 0 ? "not-allowed" : "pointer",
                   }}
                 >
                   {Ic.players("#0d1216")} Ajouter tous les pions
@@ -1500,13 +1582,13 @@ export default function HostScreen() {
                           </span>
                           <button
                             onClick={() => addPlayerPawn(p, i)}
-                            disabled={placed}
+                            disabled={placed || locked}
                             style={{
                               ...btnGhost,
                               padding: "5px 10px",
                               fontSize: 12,
-                              opacity: placed ? 0.5 : 1,
-                              cursor: placed ? "not-allowed" : "pointer",
+                              opacity: placed || locked ? 0.5 : 1,
+                              cursor: placed || locked ? "not-allowed" : "pointer",
                             }}
                           >
                             {placed ? "Ajouté" : "+ Ajouter"}
@@ -1524,7 +1606,14 @@ export default function HostScreen() {
                 <div style={sectionTitle}>Importer un média</div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ ...btnGhost, width: "100%", justifyContent: "center" }}
+                  disabled={locked}
+                  style={{
+                    ...btnGhost,
+                    width: "100%",
+                    justifyContent: "center",
+                    opacity: locked ? 0.5 : 1,
+                    cursor: locked ? "not-allowed" : "pointer",
+                  }}
                 >
                   {Ic.upload("#0d1216")} Choisir une image
                 </button>
@@ -1539,12 +1628,13 @@ export default function HostScreen() {
             )}
 
             {panel === "bg" && (
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: 16, opacity: locked ? 0.5 : 1 }}>
                 <div style={sectionTitle}>Arrière-plan</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {["#ffffff", ...COLORS].map((c) => (
                     <button
                       key={c}
+                      disabled={locked}
                       onClick={() => setCanvasBgWithSave(c)}
                       style={{
                         width: 28,
@@ -1552,7 +1642,7 @@ export default function HostScreen() {
                         borderRadius: "50%",
                         background: c,
                         border: canvasBg === c ? "2px solid #0d1216" : "1px solid #d9dde3",
-                        cursor: "pointer",
+                        cursor: locked ? "not-allowed" : "pointer",
                         padding: 0,
                       }}
                     />
