@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useRealtimePlayers } from "@/hooks/useRealtimePlayers";
 import type { Player } from "@/types/game";
+import { toPng } from "html-to-image";
 
 /* ---------- petites icônes SVG (pas de lib externe) ---------- */
 const Ic = {
@@ -400,6 +401,28 @@ export default function HostScreen() {
     setSelectedId(null);
     setEditingId(null);
     setSaveStatus("saved");
+  }
+
+  const [exporting, setExporting] = useState(false);
+
+  async function exportPng() {
+    if (!canvasRef.current || exporting) return;
+    setExporting(true);
+    // On désélectionne pour ne pas exporter le contour de sélection / la poignée de redimensionnement.
+    setSelectedId(null);
+    setEditingId(null);
+    try {
+      await new Promise((r) => setTimeout(r, 50));
+      const dataUrl = await toPng(canvasRef.current, { pixelRatio: 2 });
+      const link = document.createElement("a");
+      link.download = `plateau-${code || "jeu-de-loie"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Export PNG impossible :", err);
+    } finally {
+      setExporting(false);
+    }
   }
 
   const players = useRealtimePlayers(gameId);
@@ -977,6 +1000,14 @@ export default function HostScreen() {
 
         <button onClick={handleLoad} disabled={!gameId} style={btnGhost}>
           Charger
+        </button>
+
+        <button
+          onClick={exportPng}
+          disabled={exporting}
+          style={{ ...btnGhost, opacity: exporting ? 0.6 : 1, cursor: exporting ? "not-allowed" : "pointer" }}
+        >
+          {exporting ? "Export…" : "Exporter PNG"}
         </button>
 
         <button

@@ -56,7 +56,7 @@ Traite UNE seule tâche non cochée à la fois. Coche-la, commit, stop.
 
 
 
-\- \[ ] \*\*7. Export du plateau en PNG\*\*
+\- \[x] \*\*7. Export du plateau en PNG\*\*
 
 &#x20; - Fini quand : un bouton télécharge le canvas en image.
 
